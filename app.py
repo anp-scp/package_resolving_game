@@ -7,11 +7,9 @@ from boolean_solver import BooleanSolver
 import json
 
 # Configure page
-st.set_page_config(
-    page_title="Package Dependency Resolution Game",
-    page_icon="📦",
-    layout="wide"
-)
+st.set_page_config(page_title="Package Dependency Resolution Game",
+                   page_icon="📦",
+                   layout="wide")
 
 # Initialize session state
 if 'game' not in st.session_state:
@@ -21,183 +19,188 @@ if 'mode' not in st.session_state:
 if 'selected_scenario' not in st.session_state:
     st.session_state.selected_scenario = 0
 
+
 def create_interactive_graph(game):
     """Create an interactive Plotly graph from the game state"""
     G = game.dependency_graph
-    
+
     # Use hierarchical layout based on package levels
     pos = game.get_hierarchical_layout()
-    
+
     # Prepare node traces
     node_x = []
     node_y = []
     node_text = []
     node_colors = []
     node_info = []
-    
+
     for node in G.nodes():
         x, y = pos[node]
         node_x.append(x)
         node_y.append(y)
-        
+
         package_name, version = game.parse_package_node(node)
         node_text.append(f"{package_name}<br>v{version}")
-        
+
         # Color based on selection status
         if node in game.selected_packages:
             node_colors.append('#28a745')  # Green for selected
         else:
-            node_colors.append('#6c757d')  # Gray for unselected
-            
+            node_colors.append('#000000')  # Gray for unselected
+
         # Add hover information
         dependencies = list(G.successors(node))
         dep_text = f"Dependencies: {', '.join(dependencies) if dependencies else 'None'}"
         node_info.append(f"{node}<br>{dep_text}")
-    
+
     # Create node trace
-    node_trace = go.Scatter(
-        x=node_x, y=node_y,
-        mode='markers+text',
-        text=node_text,
-        textposition="middle center",
-        hovertext=node_info,
-        hoverinfo='text',
-        marker=dict(
-            size=50,
-            color=node_colors,
-            line=dict(width=2, color='black')
-        ),
-        customdata=list(G.nodes()),
-        name="Packages"
-    )
-    
+    node_trace = go.Scatter(x=node_x,
+                            y=node_y,
+                            mode='markers+text',
+                            text=node_text,
+                            textposition="middle center",
+                            hovertext=node_info,
+                            hoverinfo='text',
+                            marker=dict(size=50,
+                                        color=node_colors,
+                                        line=dict(width=2, color='black')),
+                            customdata=list(G.nodes()),
+                            name="Packages")
+
     # Prepare edge traces with arrows
     edge_x = []
     edge_y = []
     arrow_annotations = []
-    
+
     for edge in G.edges():
         x0, y0 = pos[edge[0]]
         x1, y1 = pos[edge[1]]
         edge_x.extend([x0, x1, None])
         edge_y.extend([y0, y1, None])
-        
+
         # Add arrow annotation for each edge
         arrow_annotations.append(
             dict(
-                x=x1, y=y1,
-                ax=x0, ay=y0,
-                xref='x', yref='y',
-                axref='x', ayref='y',
+                x=x1,
+                y=y1,
+                ax=x0,
+                ay=y0,
+                xref='x',
+                yref='y',
+                axref='x',
+                ayref='y',
                 showarrow=True,
                 arrowhead=2,
                 arrowsize=1,
                 arrowwidth=2,
                 arrowcolor='#888',
                 standoff=25,  # Distance from node center
-            )
-        )
-    
-    edge_trace = go.Scatter(
-        x=edge_x, y=edge_y,
-        line=dict(width=2, color='#888'),
-        hoverinfo='none',
-        mode='lines',
-        name="Dependencies"
-    )
-    
+            ))
+
+    edge_trace = go.Scatter(x=edge_x,
+                            y=edge_y,
+                            line=dict(width=2, color='#888'),
+                            hoverinfo='none',
+                            mode='lines',
+                            name="Dependencies")
+
     # Create figure
-    fig = go.Figure(data=[edge_trace, node_trace],
-                    layout=go.Layout(
-                        title=dict(
-                            text="Package Dependency Graph - Click nodes to select/deselect",
-                            font=dict(size=16)
-                        ),
-                        showlegend=False,
-                        hovermode='closest',
-                        margin=dict(b=20,l=5,r=5,t=40),
-                        annotations=arrow_annotations + [ dict(
-                            text="Click on packages to select/deselect them",
-                            showarrow=False,
-                            xref="paper", yref="paper",
-                            x=0.005, y=-0.002,
-                            xanchor="left", yanchor="bottom",
-                            font=dict(color="#888", size=12)
-                        )],
-                        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                        plot_bgcolor='white'
-                    ))
-    
+    fig = go.Figure(
+        data=[edge_trace, node_trace],
+        layout=go.
+        Layout(title=dict(
+            text="Package Dependency Graph - Click nodes to select/deselect",
+            font=dict(size=16)),
+               showlegend=False,
+               hovermode='closest',
+               margin=dict(b=20, l=5, r=5, t=40),
+               annotations=arrow_annotations + [
+                   dict(text="Click on packages to select/deselect them",
+                        showarrow=False,
+                        xref="paper",
+                        yref="paper",
+                        x=0.005,
+                        y=-0.002,
+                        xanchor="left",
+                        yanchor="bottom",
+                        font=dict(color="#888", size=12))
+               ],
+               xaxis=dict(showgrid=False, zeroline=False,
+                          showticklabels=False),
+               yaxis=dict(showgrid=False, zeroline=False,
+                          showticklabels=False),
+               plot_bgcolor='white'))
+
     return fig
+
 
 def display_boolean_clauses(game):
     """Display boolean clauses with their evaluation status"""
     boolean_solver = BooleanSolver(game.dependency_graph, game.root_package)
     clauses = boolean_solver.generate_clauses()
-    
+
     st.subheader("Boolean Clauses")
     st.write("Each clause must be satisfied (True) for a valid solution:")
-    
+
     for i, clause in enumerate(clauses):
         # Evaluate clause
-        is_satisfied = boolean_solver.evaluate_clause(clause, game.selected_packages)
-        
+        is_satisfied = boolean_solver.evaluate_clause(clause,
+                                                      game.selected_packages)
+
         # Color based on satisfaction
         color = "green" if is_satisfied else "red"
         status = "✓ True" if is_satisfied else "✗ False"
-        
+
         # Format clause for display
         clause_text = boolean_solver.format_clause_for_display(clause)
-        
+
         st.markdown(f"**Clause {i+1}:** {clause_text}")
-        st.markdown(f"<span style='color: {color}; font-weight: bold;'>{status}</span>", 
-                   unsafe_allow_html=True)
+        st.markdown(
+            f"<span style='color: {color}; font-weight: bold;'>{status}</span>",
+            unsafe_allow_html=True)
         st.write("---")
+
 
 def main():
     st.title("📦 Package Dependency Resolution Game")
     st.write("Solve package dependencies like a package manager!")
-    
+
     # Sidebar for game controls
     with st.sidebar:
         st.header("Game Controls")
-        
+
         # Mode selection
         mode = st.radio(
-            "Select Game Mode:",
-            ["Wild Mode", "Boolean Mode"],
-            help="Wild Mode: Solve without assistance. Boolean Mode: See boolean clause evaluation."
+            "Select Game Mode:", ["Wild Mode", "Boolean Mode"],
+            help=
+            "Wild Mode: Solve without assistance. Boolean Mode: See boolean clause evaluation."
         )
         st.session_state.mode = 'wild' if mode == "Wild Mode" else 'boolean'
-        
+
         # Scenario selection
         scenarios = generate_sample_graphs()
-        scenario_names = [f"Scenario {i+1}: {desc['name']}" for i, desc in enumerate(scenarios)]
-        
-        selected_idx = st.selectbox(
-            "Choose a scenario:",
-            range(len(scenarios)),
-            format_func=lambda x: scenario_names[x]
-        )
-        
+        scenario_names = [
+            f"Scenario {i+1}: {desc['name']}"
+            for i, desc in enumerate(scenarios)
+        ]
+
+        selected_idx = st.selectbox("Choose a scenario:",
+                                    range(len(scenarios)),
+                                    format_func=lambda x: scenario_names[x])
+
         if selected_idx != st.session_state.selected_scenario or st.session_state.game is None:
             st.session_state.selected_scenario = selected_idx
             scenario = scenarios[selected_idx]
             st.session_state.game = PackageDependencyGame(
-                scenario['graph'], 
-                scenario['root']
-            )
-        
+                scenario['graph'], scenario['root'])
+
         # Game controls
         if st.button("Reset Game"):
             scenario = scenarios[st.session_state.selected_scenario]
             st.session_state.game = PackageDependencyGame(
-                scenario['graph'], 
-                scenario['root']
-            )
+                scenario['graph'], scenario['root'])
             st.rerun()
-        
+
         # Display game rules
         st.header("Game Rules")
         st.write("""
@@ -208,89 +211,96 @@ def main():
         3. **How to play**: Click on nodes in the graph to select/deselect them
         4. **Win condition**: All constraints satisfied and root package installable
         """)
-    
+
     game = st.session_state.game
-    
+
     if game is None:
         st.error("Failed to initialize game. Please try refreshing the page.")
         return
-    
+
     # Main game area
     if st.session_state.mode == 'boolean':
         # Boolean mode: Two column layout
         col1, col2 = st.columns([2, 1])
-        
+
         with col1:
             st.subheader("Dependency Graph")
             fig = create_interactive_graph(game)
-            
+
             # Handle node clicks
-            selected_points = st.plotly_chart(fig, use_container_width=True, key="graph")
-            
+            selected_points = st.plotly_chart(fig,
+                                              use_container_width=True,
+                                              key="graph")
+
         with col2:
             display_boolean_clauses(game)
     else:
         # Wild mode: Full width graph
         st.subheader("Dependency Graph")
         fig = create_interactive_graph(game)
-        selected_points = st.plotly_chart(fig, use_container_width=True, key="graph")
-    
+        selected_points = st.plotly_chart(fig,
+                                          use_container_width=True,
+                                          key="graph")
+
     # Handle graph interactions
     if st.session_state.get('graph_click'):
-        # This would be triggered by plotly events, but since we can't easily 
+        # This would be triggered by plotly events, but since we can't easily
         # capture clicks in Streamlit, we'll use buttons as an alternative
         pass
-    
+
     # Alternative interaction method: Buttons for package selection
     st.subheader("Package Selection")
     st.write("Select packages by clicking the buttons below:")
-    
+
     packages = list(game.dependency_graph.nodes())
     packages.sort()
-    
+
     cols = st.columns(min(4, len(packages)))
     for i, package in enumerate(packages):
         col_idx = i % len(cols)
         package_name, version = game.parse_package_node(package)
-        
+
         with cols[col_idx]:
             is_selected = package in game.selected_packages
             button_text = f"{'✓' if is_selected else '○'} {package_name} v{version}"
-            
+
             if st.button(button_text, key=f"btn_{package}"):
                 if is_selected:
                     game.deselect_package(package)
                 else:
                     game.select_package(package)
                 st.rerun()
-    
+
     # Game status
     st.subheader("Game Status")
-    
+
     # Check constraints
     constraint_violations = game.check_constraints()
     is_valid_solution = game.is_valid_solution()
-    
+
     if constraint_violations:
         st.error("Constraint Violations:")
         for violation in constraint_violations:
             st.write(f"• {violation}")
     else:
         st.success("No constraint violations!")
-    
+
     if is_valid_solution:
-        st.success("🎉 Congratulations! You've successfully resolved all dependencies!")
+        st.success(
+            "🎉 Congratulations! You've successfully resolved all dependencies!"
+        )
         st.balloons()
     elif game.selected_packages:
         st.info("Keep trying! Select the right combination of packages.")
     else:
         st.info("Start by selecting some packages to begin.")
-    
+
     # Display selected packages
     if game.selected_packages:
         st.subheader("Selected Packages")
         selected_list = sorted(list(game.selected_packages))
         st.write(", ".join(selected_list))
+
 
 if __name__ == "__main__":
     main()
