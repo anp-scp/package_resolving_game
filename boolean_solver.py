@@ -28,7 +28,7 @@ class BooleanSolver:
             return package.split('==')[0]
         return package
     
-    def generate_clauses(self) -> List[List[Union[str, Tuple[str, bool]]]]:
+    def generate_clauses(self) -> List[List[Tuple[str, bool]]]:
         """Generate boolean clauses representing the dependency constraints"""
         clauses = []
         

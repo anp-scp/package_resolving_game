@@ -1,5 +1,5 @@
 import networkx as nx
-from typing import Dict, List, Set, Tuple, Any
+from typing import Dict, List, Set, Tuple, Any, Optional
 import re
 
 class PackageDependencyGame:
@@ -41,11 +41,16 @@ class PackageDependencyGame:
         """Create hierarchical layout with packages organized by dependency levels"""
         # Calculate levels using topological sort
         try:
+            # Check if graph is acyclic first
+            if not nx.is_directed_acyclic_graph(self.dependency_graph):
+                # If it has cycles, use spring layout
+                return nx.spring_layout(self.dependency_graph, k=2, iterations=50)
+            
             levels = {}
             topo_order = list(nx.topological_sort(self.dependency_graph))
             
             # Assign levels based on longest path from root
-            for node in self.dependency_graph.nodes():
+            for node in topo_order:
                 if self.dependency_graph.in_degree(node) == 0:
                     levels[node] = 0
                 else:
@@ -189,7 +194,7 @@ class PackageDependencyGame:
             # Check dependencies
             dependencies = list(self.dependency_graph.successors(package))
             for dep in dependencies:
-                if not can_install(dep, visited.copy()):
+                if not can_install(dep, visited.copy() if visited else set()):
                     return False
             
             return True
@@ -207,6 +212,6 @@ class PackageDependencyGame:
             'selected_packages': list(self.selected_packages),
             'constraint_violations': self.check_constraints(),
             'is_valid_solution': self.is_valid_solution(),
-            'total_packages': len(self.dependency_graph.nodes()),
-            'total_dependencies': len(self.dependency_graph.edges())
+            'total_packages': self.dependency_graph.number_of_nodes(),
+            'total_dependencies': self.dependency_graph.number_of_edges()
         }

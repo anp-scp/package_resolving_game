@@ -71,15 +71,32 @@ def create_interactive_graph(game):
         name="Packages"
     )
     
-    # Prepare edge traces
+    # Prepare edge traces with arrows
     edge_x = []
     edge_y = []
+    arrow_annotations = []
     
     for edge in G.edges():
         x0, y0 = pos[edge[0]]
         x1, y1 = pos[edge[1]]
         edge_x.extend([x0, x1, None])
         edge_y.extend([y0, y1, None])
+        
+        # Add arrow annotation for each edge
+        arrow_annotations.append(
+            dict(
+                x=x1, y=y1,
+                ax=x0, ay=y0,
+                xref='x', yref='y',
+                axref='x', ayref='y',
+                showarrow=True,
+                arrowhead=2,
+                arrowsize=1,
+                arrowwidth=2,
+                arrowcolor='#888',
+                standoff=25,  # Distance from node center
+            )
+        )
     
     edge_trace = go.Scatter(
         x=edge_x, y=edge_y,
@@ -99,7 +116,7 @@ def create_interactive_graph(game):
                         showlegend=False,
                         hovermode='closest',
                         margin=dict(b=20,l=5,r=5,t=40),
-                        annotations=[ dict(
+                        annotations=arrow_annotations + [ dict(
                             text="Click on packages to select/deselect them",
                             showarrow=False,
                             xref="paper", yref="paper",
