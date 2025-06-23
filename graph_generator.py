@@ -136,27 +136,27 @@ def generate_sample_graphs() -> List[Dict[str, Any]]:
     # Scenario 5: Boolean Logic Example (A-2.0 depends on B and G versions)
     G5 = nx.DiGraph()
     packages = [
-        "A-2.0",
-        "B-1.3", "B-1.4", 
-        "G-0.5", "G-0.6", "G-0.7"
+        "A==2.0",
+        "B==1.3", "B==1.4",
+        "G==0.5", "G==0.6", "G==0.7"
     ]
     
     G5.add_nodes_from(packages)
     G5.add_edges_from([
-        ("A-2.0", "B-1.3"),
-        ("A-2.0", "B-1.4"),
-        ("A-2.0", "G-0.6"),
-        ("A-2.0", "G-0.7"),
-        ("B-1.3", "G-0.5"),
-        ("B-1.3", "G-0.6"),
-        ("B-1.4", "G-0.7")
+        ("A==2.0", "B==1.3"),
+        ("A==2.0", "B==1.4"),
+        ("A==2.0", "G==0.6"),
+        ("A==2.0", "G==0.7"),
+        ("B==1.3", "G==0.5"),
+        ("B==1.3", "G==0.6"),
+        ("B==1.4", "G==0.7")
     ])
     
     scenarios.append({
         'name': 'Boolean Logic Example',
-        'description': 'A-2.0 with complex B and G version dependencies',
+        'description': 'A==2.0 with complex B and G version dependencies',
         'graph': G5,
-        'root': 'A-2.0'
+        'root': 'A==2.0'
     })
     
     return scenarios
