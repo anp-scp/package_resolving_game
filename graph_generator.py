@@ -133,36 +133,30 @@ def generate_sample_graphs() -> List[Dict[str, Any]]:
         'root': 'mlproject==1.0.0'
     })
     
-    # Scenario 5: Microservice with conflicting versions
+    # Scenario 5: Boolean Logic Example (A-2.0 depends on B and G versions)
     G5 = nx.DiGraph()
     packages = [
-        "microservice==1.0.0",
-        "fastapi==0.68.0",
-        "pydantic==1.8.0", "pydantic==1.7.0",
-        "uvicorn==0.15.0",
-        "starlette==0.14.0", "starlette==0.13.0",
-        "httpx==0.24.0",
-        "typing-extensions==3.10.0"
+        "A-2.0",
+        "B-1.3", "B-1.4", 
+        "G-0.5", "G-0.6", "G-0.7"
     ]
     
     G5.add_nodes_from(packages)
     G5.add_edges_from([
-        ("microservice==1.0.0", "fastapi==0.68.0"),
-        ("microservice==1.0.0", "uvicorn==0.15.0"),
-        ("microservice==1.0.0", "httpx==0.24.0"),
-        ("fastapi==0.68.0", "pydantic==1.8.0"),
-        ("fastapi==0.68.0", "starlette==0.14.0"),
-        ("uvicorn==0.15.0", "starlette==0.14.0"),
-        ("pydantic==1.8.0", "typing-extensions==3.10.0"),
-        ("pydantic==1.7.0", "typing-extensions==3.10.0"),
-        ("starlette==0.13.0", "typing-extensions==3.10.0")
+        ("A-2.0", "B-1.3"),
+        ("A-2.0", "B-1.4"),
+        ("A-2.0", "G-0.6"),
+        ("A-2.0", "G-0.7"),
+        ("B-1.3", "G-0.5"),
+        ("B-1.3", "G-0.6"),
+        ("B-1.4", "G-0.7")
     ])
     
     scenarios.append({
-        'name': 'FastAPI Microservice',
-        'description': 'Modern async web service with potential version conflicts',
+        'name': 'Boolean Logic Example',
+        'description': 'A-2.0 with complex B and G version dependencies',
         'graph': G5,
-        'root': 'microservice==1.0.0'
+        'root': 'A-2.0'
     })
     
     return scenarios

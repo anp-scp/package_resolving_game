@@ -32,13 +32,11 @@ class BooleanSolver:
         """Generate boolean clauses representing the dependency constraints"""
         clauses = []
         
-        # 1. Root package must be installed (at least one version)
-        root_name = self._get_package_name(self.root_package)
-        if root_name in self.package_groups:
-            root_clause = [(pkg, True) for pkg in self.package_groups[root_name]]
-            clauses.append(root_clause)
+        # 1. Root package must be installed
+        clauses.append([(self.root_package, True)])
         
         # 2. At most one version of each package can be selected
+        # NOT (X1 AND X2) = (NOT X1) OR (NOT X2)
         for package_name, versions in self.package_groups.items():
             if len(versions) > 1:
                 # For each pair of versions, at least one must be false
@@ -46,15 +44,24 @@ class BooleanSolver:
                     clauses.append([(pkg1, False), (pkg2, False)])
         
         # 3. Dependency constraints: if package A is selected, its dependencies must be satisfied
+        # A -> (B1 OR B2) becomes (NOT A) OR (B1 OR B2)
         for package in self.packages:
             dependencies = list(self.dependency_graph.successors(package))
             
-            for dep in dependencies:
-                dep_name = self._get_package_name(dep)
-                if dep_name in self.package_groups:
-                    # If package is selected, then at least one version of dependency must be selected
-                    dep_versions = [(pkg, True) for pkg in self.package_groups[dep_name]]
-                    clause = [(package, False)] + dep_versions
+            if dependencies:
+                # Group dependencies by package name
+                dep_groups = {}
+                for dep in dependencies:
+                    dep_name = self._get_package_name(dep)
+                    if dep_name not in dep_groups:
+                        dep_groups[dep_name] = []
+                    dep_groups[dep_name].append(dep)
+                
+                # For each dependency group, create implication clause
+                for dep_name, dep_versions in dep_groups.items():
+                    # NOT package OR (dep_version1 OR dep_version2 OR ...)
+                    clause = [(package, False)]  # NOT package
+                    clause += [(dep, True) for dep in dep_versions]  # OR all versions
                     clauses.append(clause)
         
         return clauses

@@ -152,28 +152,22 @@ class PackageDependencyGame:
         return violations
     
     def is_valid_solution(self) -> bool:
-        """Check if current selection is a valid solution"""
-        # Must have root package selected
-        root_name = self.get_package_name(self.root_package)
-        root_selected = False
-        for selected in self.selected_packages:
-            if self.get_package_name(selected) == root_name:
-                root_selected = True
-                break
+        """Check if current selection is a valid solution using boolean solver"""
+        from boolean_solver import BooleanSolver
         
-        if not root_selected:
-            return False
-        
-        # No constraint violations
-        return len(self.check_constraints()) == 0
+        # Use boolean solver to check if all clauses are satisfied
+        boolean_solver = BooleanSolver(self.dependency_graph, self.root_package)
+        all_satisfied, _ = boolean_solver.evaluate_all_clauses(self.selected_packages)
+        return all_satisfied
     
     def get_installable_packages(self) -> Set[str]:
         """Get set of packages that can be successfully installed with current selection"""
         installable = set()
         
-        def can_install(package: str, visited: Set[str] = None) -> bool:
+        def can_install(package: str, visited: Optional[Set[str]] = None) -> bool:
             if visited is None:
                 visited = set()
+            assert visited is not None  # Type hint for mypy
             
             if package in visited:
                 return True  # Assume already handled
@@ -194,7 +188,7 @@ class PackageDependencyGame:
             # Check dependencies
             dependencies = list(self.dependency_graph.successors(package))
             for dep in dependencies:
-                if not can_install(dep, visited.copy() if visited else set()):
+                if not can_install(dep, visited.copy()):
                     return False
             
             return True

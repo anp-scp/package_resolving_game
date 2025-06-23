@@ -139,26 +139,69 @@ def display_boolean_clauses(game):
     boolean_solver = BooleanSolver(game.dependency_graph, game.root_package)
     clauses = boolean_solver.generate_clauses()
 
-    st.subheader("Boolean Clauses")
-    st.write("Each clause must be satisfied (True) for a valid solution:")
-
+    st.subheader("Boolean Formula Analysis")
+    st.write("The dependency constraints are converted to boolean clauses. All must be True:")
+    
+    # Group clauses by type for better explanation
+    root_clauses = []
+    version_clauses = []
+    dependency_clauses = []
+    
     for i, clause in enumerate(clauses):
-        # Evaluate clause
-        is_satisfied = boolean_solver.evaluate_clause(clause,
-                                                      game.selected_packages)
-
-        # Color based on satisfaction
+        is_satisfied = boolean_solver.evaluate_clause(clause, game.selected_packages)
+        clause_text = boolean_solver.format_clause_for_display(clause)
         color = "green" if is_satisfied else "red"
         status = "✓ True" if is_satisfied else "✗ False"
-
-        # Format clause for display
-        clause_text = boolean_solver.format_clause_for_display(clause)
-
-        st.markdown(f"**Clause {i+1}:** {clause_text}")
-        st.markdown(
-            f"<span style='color: {color}; font-weight: bold;'>{status}</span>",
-            unsafe_allow_html=True)
+        
+        clause_info = {
+            'index': i + 1,
+            'text': clause_text,
+            'satisfied': is_satisfied,
+            'color': color,
+            'status': status,
+            'clause': clause
+        }
+        
+        # Categorize clauses
+        if len(clause) == 1 and clause[0][1] == True:
+            root_clauses.append(clause_info)
+        elif all(not literal[1] for literal in clause):
+            version_clauses.append(clause_info)
+        else:
+            dependency_clauses.append(clause_info)
+    
+    # Display root package constraint
+    if root_clauses:
+        st.write("**Root Package Constraint:**")
+        for clause_info in root_clauses:
+            st.markdown(f"Term {clause_info['index']}: {clause_info['text']}")
+            st.markdown(f"<span style='color: {clause_info['color']}; font-weight: bold;'>{clause_info['status']}</span>", 
+                       unsafe_allow_html=True)
         st.write("---")
+    
+    # Display version constraints
+    if version_clauses:
+        st.write("**Version Uniqueness Constraints (at most one version per package):**")
+        for clause_info in version_clauses:
+            st.markdown(f"Term {clause_info['index']}: {clause_info['text']}")
+            st.markdown(f"<span style='color: {clause_info['color']}; font-weight: bold;'>{clause_info['status']}</span>", 
+                       unsafe_allow_html=True)
+        st.write("---")
+    
+    # Display dependency constraints
+    if dependency_clauses:
+        st.write("**Dependency Implications (if package selected, dependencies must be satisfied):**")
+        for clause_info in dependency_clauses:
+            st.markdown(f"Term {clause_info['index']}: {clause_info['text']}")
+            st.markdown(f"<span style='color: {clause_info['color']}; font-weight: bold;'>{clause_info['status']}</span>", 
+                       unsafe_allow_html=True)
+        st.write("---")
+    
+    # Overall satisfaction
+    all_satisfied = all(clause_info['satisfied'] for clause_info in root_clauses + version_clauses + dependency_clauses)
+    overall_color = "green" if all_satisfied else "red"
+    overall_status = "✓ ALL CONSTRAINTS SATISFIED" if all_satisfied else "✗ CONSTRAINTS VIOLATED"
+    st.markdown(f"<h4 style='color: {overall_color};'>{overall_status}</h4>", unsafe_allow_html=True)
 
 
 def main():
