@@ -232,6 +232,10 @@ def main():
         )
         st.session_state.mode = 'wild' if mode == "Wild Mode" else 'boolean'
 
+        if st.session_state.mode == 'boolean':
+            st.warning("Boolean analysis appears at the bottom of the page.",
+                        icon="ℹ️")
+
         # Scenario selection
         scenarios = generate_sample_graphs()
         scenario_names = [
@@ -256,15 +260,18 @@ def main():
                 scenario['graph'], scenario['root'])
             st.rerun()
 
+        st.selectbox("Root package to install", (f"{st.session_state.game.root_package}",), disabled=True)
+
         # Display game rules
         st.header("Game Rules")
         st.write("""
-        1. **Goal**: Select packages to satisfy all dependencies for the root package
-        2. **Constraints**:
+        1. **Goal**: Select packages to satisfy all dependencies (direct/indirect) for the root package
+        2. If a package depend on multiple versions of the same package, selecting any one version is enough
+        3. **Constraints**:
            - No two versions of the same package can be selected
            - All selected packages must form a valid dependency chain
-        3. **How to play**: Click on nodes in the graph to select/deselect them
-        4. **Win condition**: All constraints satisfied and root package installable
+        4. **How to play**: Click on nodes in the graph to select/deselect them for installation
+        5. **Win condition**: All constraints satisfied to make root package installable
         """)
 
     game = st.session_state.game
