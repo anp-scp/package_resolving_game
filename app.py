@@ -159,17 +159,27 @@ def create_interactive_graph(game):
                 )
                 edge_traces.append(curved_trace)
                 
-                # Arrow for curved edge
-                t_arrow = 0.85
-                arrow_start_x = (1-t_arrow)**2 * x0 + 2*(1-t_arrow)*t_arrow * ctrl_x + t_arrow**2 * x1
-                arrow_start_y = (1-t_arrow)**2 * y0 + 2*(1-t_arrow)*t_arrow * ctrl_y + t_arrow**2 * y1
+                # Arrow for curved edge - use simple direction calculation
+                # Calculate direction from curve midpoint to end
+                mid_curve_x = (1-0.5)**2 * x0 + 2*(1-0.5)*0.5 * ctrl_x + 0.5**2 * x1
+                mid_curve_y = (1-0.5)**2 * y0 + 2*(1-0.5)*0.5 * ctrl_y + 0.5**2 * y1
+                
+                # Direction vector from midpoint to end
+                dir_x = x1 - mid_curve_x
+                dir_y = y1 - mid_curve_y
+                
+                # Normalize and scale
+                dir_length = (dir_x**2 + dir_y**2)**0.5
+                if dir_length > 0:
+                    dir_x = dir_x / dir_length * 0.5
+                    dir_y = dir_y / dir_length * 0.5
                 
                 arrow_annotations.append({
                     'x': x1, 'y': y1,
-                    'ax': arrow_start_x, 'ay': arrow_start_y,
+                    'ax': x1 - dir_x, 'ay': y1 - dir_y,
                     'xref': 'x', 'yref': 'y', 'axref': 'x', 'ayref': 'y',
                     'showarrow': True, 'arrowhead': 2, 'arrowsize': 1,
-                    'arrowwidth': 2, 'arrowcolor': '#888', 'standoff': 20
+                    'arrowwidth': 2, 'arrowcolor': '#888', 'standoff': 15
                 })
 
     # Create figure
