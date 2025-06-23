@@ -10,7 +10,7 @@ import json
 # Configure page
 st.set_page_config(page_title="Package Dependency Resolution Game",
                    page_icon="📦",
-                   layout="centered",
+                   layout="wide",
                    initial_sidebar_state="expanded")
 
 # Initialize session state
@@ -30,7 +30,7 @@ def create_matplotlib_graph(game):
     pos = game.get_hierarchical_layout()
     
     # Create figure and axis
-    fig, ax = plt.subplots(1, 1, figsize=(12, 8))
+    fig, ax = plt.subplots(1, 1, )
     ax.set_aspect('equal')
     
     # Prepare node colors and edge colors for different border colors
@@ -238,7 +238,7 @@ def main():
     # Main game area
     st.subheader("Dependency Graph")
     fig = create_matplotlib_graph(game)
-    st.pyplot(fig, use_container_width=True)
+    st.pyplot(fig, use_container_width=False)
 
     # Graph is now non-interactive - use buttons below for interaction
 
