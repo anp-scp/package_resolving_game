@@ -47,7 +47,7 @@ def create_interactive_graph(game):
         if node in game.selected_packages:
             node_colors.append('#28a745')  # Green for selected
         else:
-            node_colors.append('#000000')  # Gray for unselected
+            node_colors.append('#ffffff')  # White for unselected
 
         # Add hover information
         dependencies = list(G.successors(node))
@@ -60,6 +60,7 @@ def create_interactive_graph(game):
                             mode='markers+text',
                             text=node_text,
                             textposition="middle center",
+                            textfont=dict(color='#000000'),
                             hovertext=node_info,
                             hoverinfo='text',
                             marker=dict(size=50,
@@ -84,8 +85,8 @@ def create_interactive_graph(game):
             dict(
                 x=x1,
                 y=y1,
-                ax=x0,
-                ay=y0,
+                ax=x0 + (x1 - x0) * 0.1,  # Arrow starts at 10% of edge length
+                ay=y0 + (y1 - y0) * 0.1,
                 xref='x',
                 yref='y',
                 axref='x',
@@ -141,19 +142,23 @@ def display_boolean_clauses(game):
     clauses = boolean_solver.generate_clauses()
 
     st.subheader("Boolean Formula Analysis")
-    st.write("The dependency constraints are converted to boolean clauses. All must be True:")
-    
+    st.write(
+        "The dependency constraints are converted to boolean clauses. All must be True:"
+    )
+
     # Get original formulas and evaluate them
     original_formulas = boolean_solver.get_original_formulas()
     root_clauses = []
     version_clauses = []
     dependency_clauses = []
-    
-    for i, (clause, formula_info) in enumerate(zip(clauses, original_formulas)):
-        is_satisfied = boolean_solver.evaluate_clause(clause, game.selected_packages)
+
+    for i, (clause, formula_info) in enumerate(zip(clauses,
+                                                   original_formulas)):
+        is_satisfied = boolean_solver.evaluate_clause(clause,
+                                                      game.selected_packages)
         color = "green" if is_satisfied else "red"
         status = "✓ True" if is_satisfied else "✗ False"
-        
+
         clause_info = {
             'index': i + 1,
             'original_formula': formula_info['formula'],
@@ -163,7 +168,7 @@ def display_boolean_clauses(game):
             'status': status,
             'type': formula_info['type']
         }
-        
+
         # Categorize clauses by type
         if formula_info['type'] == 'root':
             root_clauses.append(clause_info)
@@ -171,39 +176,55 @@ def display_boolean_clauses(game):
             version_clauses.append(clause_info)
         elif formula_info['type'] == 'dependency':
             dependency_clauses.append(clause_info)
-    
+
     # Display root package constraint
     if root_clauses:
         st.write("**Root Package Constraint:**")
         for clause_info in root_clauses:
-            st.markdown(f"Term {clause_info['index']}: {clause_info['original_formula']}")
-            st.markdown(f"<span style='color: {clause_info['color']}; font-weight: bold;'>{clause_info['status']}</span>", 
-                       unsafe_allow_html=True)
+            st.markdown(
+                f"Term {clause_info['index']}: {clause_info['original_formula']}"
+            )
+            st.markdown(
+                f"<span style='color: {clause_info['color']}; font-weight: bold;'>{clause_info['status']}</span>",
+                unsafe_allow_html=True)
         st.write("---")
-    
+
     # Display version constraints
     if version_clauses:
-        st.write("**Version Uniqueness Constraints (at most one version per package):**")
+        st.write(
+            "**Version Uniqueness Constraints (at most one version per package):**"
+        )
         for clause_info in version_clauses:
-            st.markdown(f"Term {clause_info['index']}: {clause_info['original_formula']}")
-            st.markdown(f"<span style='color: {clause_info['color']}; font-weight: bold;'>{clause_info['status']}</span>", 
-                       unsafe_allow_html=True)
+            st.markdown(
+                f"Term {clause_info['index']}: {clause_info['original_formula']}"
+            )
+            st.markdown(
+                f"<span style='color: {clause_info['color']}; font-weight: bold;'>{clause_info['status']}</span>",
+                unsafe_allow_html=True)
         st.write("---")
-    
+
     # Display dependency constraints
     if dependency_clauses:
-        st.write("**Dependency Implications (if package selected, dependencies must be satisfied):**")
+        st.write(
+            "**Dependency Implications (if package selected, dependencies must be satisfied):**"
+        )
         for clause_info in dependency_clauses:
-            st.markdown(f"Term {clause_info['index']}: {clause_info['original_formula']}")
-            st.markdown(f"<span style='color: {clause_info['color']}; font-weight: bold;'>{clause_info['status']}</span>", 
-                       unsafe_allow_html=True)
+            st.markdown(
+                f"Term {clause_info['index']}: {clause_info['original_formula']}"
+            )
+            st.markdown(
+                f"<span style='color: {clause_info['color']}; font-weight: bold;'>{clause_info['status']}</span>",
+                unsafe_allow_html=True)
         st.write("---")
-    
+
     # Overall satisfaction
-    all_satisfied = all(clause_info['satisfied'] for clause_info in root_clauses + version_clauses + dependency_clauses)
+    all_satisfied = all(clause_info['satisfied']
+                        for clause_info in root_clauses + version_clauses +
+                        dependency_clauses)
     overall_color = "green" if all_satisfied else "red"
     overall_status = "✓ ALL CONSTRAINTS SATISFIED" if all_satisfied else "✗ CONSTRAINTS VIOLATED"
-    st.markdown(f"<h4 style='color: {overall_color};'>{overall_status}</h4>", unsafe_allow_html=True)
+    st.markdown(f"<h4 style='color: {overall_color};'>{overall_status}</h4>",
+                unsafe_allow_html=True)
 
 
 def main():
@@ -266,7 +287,9 @@ def main():
     # Main game area
     st.subheader("Dependency Graph")
     fig = create_interactive_graph(game)
-    selected_points = st.plotly_chart(fig, use_container_width=True, key="graph")
+    selected_points = st.plotly_chart(fig,
+                                      use_container_width=True,
+                                      key="graph")
 
     # Handle graph interactions
     if st.session_state.get('graph_click'):
@@ -304,10 +327,14 @@ def main():
     is_valid_solution = game.is_valid_solution()
 
     if is_valid_solution:
-        st.success("🎉 Congratulations! You've successfully resolved all dependencies!")
+        st.success(
+            "🎉 Congratulations! You've successfully resolved all dependencies!"
+        )
         st.balloons()
     elif game.selected_packages:
-        st.error("❌ Current selection does not satisfy all constraints. Keep trying!")
+        st.error(
+            "❌ Current selection does not satisfy all constraints. Keep trying!"
+        )
     else:
         st.info("Start by selecting some packages to begin.")
 
@@ -316,7 +343,7 @@ def main():
         st.subheader("Selected Packages")
         selected_list = sorted(list(game.selected_packages))
         st.write(", ".join(selected_list))
-    
+
     # Display Boolean Formula Analysis at the bottom in Boolean mode
     if st.session_state.mode == 'boolean':
         display_boolean_clauses(game)
