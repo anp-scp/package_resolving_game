@@ -318,24 +318,14 @@ def main():
     # Game status
     st.subheader("Game Status")
 
-    # Check constraints
-    constraint_violations = game.check_constraints()
+    # Check if solution is valid using boolean solver
     is_valid_solution = game.is_valid_solution()
 
-    if constraint_violations:
-        st.error("Constraint Violations:")
-        for violation in constraint_violations:
-            st.write(f"• {violation}")
-    else:
-        st.success("No constraint violations!")
-
     if is_valid_solution:
-        st.success(
-            "🎉 Congratulations! You've successfully resolved all dependencies!"
-        )
+        st.success("🎉 Congratulations! You've successfully resolved all dependencies!")
         st.balloons()
     elif game.selected_packages:
-        st.info("Keep trying! Select the right combination of packages.")
+        st.error("❌ Current selection does not satisfy all constraints. Keep trying!")
     else:
         st.info("Start by selecting some packages to begin.")
 
