@@ -77,24 +77,88 @@ def create_interactive_graph(game):
                             customdata=list(G.nodes()),
                             name="Packages")
 
-    # Prepare edge traces with arrows
+    # Prepare edge traces with arrows and overlap avoidance
     edge_x = []
     edge_y = []
     arrow_annotations = []
-
-    for edge in G.edges():
+    
+    # Enhanced edge routing to prevent overlaps
+    edge_paths = []
+    used_routes = set()
+    
+    for i, edge in enumerate(G.edges()):
         x0, y0 = pos[edge[0]]
         x1, y1 = pos[edge[1]]
-        edge_x.extend([x0, x1, None])
-        edge_y.extend([y0, y1, None])
-
-        # Add arrow annotation for each edge
+        
+        # Calculate base vector
+        dx = x1 - x0
+        dy = y1 - y0
+        length = (dx**2 + dy**2)**0.5
+        
+        if length == 0:
+            # Handle self-loops or zero-length edges
+            edge_x.extend([x0, x1, None])
+            edge_y.extend([y0, y1, None])
+            continue
+        
+        # Normalize direction vector
+        unit_dx = dx / length
+        unit_dy = dy / length
+        
+        # Calculate perpendicular vector for curvature
+        perp_dx = -unit_dy
+        perp_dy = unit_dx
+        
+        # Find a route that doesn't overlap with existing edges
+        best_curve = 0
+        curve_step = 0.15
+        max_attempts = 10
+        
+        for attempt in range(max_attempts):
+            # Alternate between positive and negative curvature
+            curve_factor = curve_step * (attempt // 2 + 1)
+            if attempt % 2 == 1:
+                curve_factor = -curve_factor
+            
+            # Calculate control points for curved edge
+            mid_x = (x0 + x1) / 2 + perp_dx * curve_factor
+            mid_y = (y0 + y1) / 2 + perp_dy * curve_factor
+            
+            # Create route signature for overlap detection
+            route_sig = (round(mid_x, 2), round(mid_y, 2), round(x0, 2), round(y0, 2), round(x1, 2), round(y1, 2))
+            
+            # Check if this route conflicts with existing ones
+            conflict = False
+            for existing_route in used_routes:
+                # Simple overlap detection based on midpoint proximity
+                if abs(route_sig[0] - existing_route[0]) < 0.1 and abs(route_sig[1] - existing_route[1]) < 0.1:
+                    conflict = True
+                    break
+            
+            if not conflict:
+                used_routes.add(route_sig)
+                best_curve = curve_factor
+                break
+        
+        # Create the final curved edge
+        final_mid_x = (x0 + x1) / 2 + perp_dx * best_curve
+        final_mid_y = (y0 + y1) / 2 + perp_dy * best_curve
+        
+        # Add edge path
+        edge_x.extend([x0, final_mid_x, x1, None])
+        edge_y.extend([y0, final_mid_y, y1, None])
+        
+        # Calculate arrow position (75% along the curve)
+        arrow_x = 0.25 * x0 + 0.5 * final_mid_x + 0.25 * x1
+        arrow_y = 0.25 * y0 + 0.5 * final_mid_y + 0.25 * y1
+        
+        # Arrow annotation
         arrow_annotations.append(
             dict(
                 x=x1,
                 y=y1,
-                ax=x0 + (x1 - x0) * 0.1,  # Arrow starts at 10% of edge length
-                ay=y0 + (y1 - y0) * 0.1,
+                ax=arrow_x,
+                ay=arrow_y,
                 xref='x',
                 yref='y',
                 axref='x',
@@ -104,8 +168,9 @@ def create_interactive_graph(game):
                 arrowsize=1,
                 arrowwidth=2,
                 arrowcolor='#888',
-                standoff=25,  # Distance from node center
-            ))
+                standoff=25,
+            )
+        )
 
     edge_trace = go.Scatter(x=edge_x,
                             y=edge_y,
