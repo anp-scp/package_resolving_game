@@ -106,23 +106,29 @@ def create_interactive_graph(game):
             )
             edge_traces.append(edge_trace)
             
-            # Add arrow annotation
+            # Add arrow annotation for straight edge
+            # Calculate arrow position closer to target node
+            arrow_end_x = x0 + (x1 - x0) * 0.9
+            arrow_end_y = y0 + (y1 - y0) * 0.9
+            arrow_start_x = x0 + (x1 - x0) * 0.8
+            arrow_start_y = y0 + (y1 - y0) * 0.8
+            
             arrow_annotations.append(
                 dict(
-                    x=x1,
-                    y=y1,
-                    ax=x0 + (x1 - x0) * 0.1,
-                    ay=y0 + (y1 - y0) * 0.1,
+                    x=arrow_end_x,
+                    y=arrow_end_y,
+                    ax=arrow_start_x,
+                    ay=arrow_start_y,
                     xref='x',
                     yref='y',
                     axref='x',
                     ayref='y',
                     showarrow=True,
                     arrowhead=2,
-                    arrowsize=1,
+                    arrowsize=1.5,
                     arrowwidth=2,
                     arrowcolor='#888',
-                    standoff=25,
+                    standoff=0,
                 ))
         else:
             # Multiple edges from same source - create curves
@@ -181,14 +187,20 @@ def create_interactive_graph(game):
                 edge_traces.append(edge_trace)
                 
                 # Add arrow annotation at end of curve
-                arrow_start_t = 0.9  # Arrow starts at 90% along curve
+                # Calculate two points near the end for arrow direction
+                arrow_end_t = 0.95
+                arrow_start_t = 0.85
+                
+                arrow_end_x = (1-arrow_end_t)**2 * x0 + 2*(1-arrow_end_t)*arrow_end_t * ctrl_x + arrow_end_t**2 * x1
+                arrow_end_y = (1-arrow_end_t)**2 * y0 + 2*(1-arrow_end_t)*arrow_end_t * ctrl_y + arrow_end_t**2 * y1
+                
                 arrow_start_x = (1-arrow_start_t)**2 * x0 + 2*(1-arrow_start_t)*arrow_start_t * ctrl_x + arrow_start_t**2 * x1
                 arrow_start_y = (1-arrow_start_t)**2 * y0 + 2*(1-arrow_start_t)*arrow_start_t * ctrl_y + arrow_start_t**2 * y1
                 
                 arrow_annotations.append(
                     dict(
-                        x=x1,
-                        y=y1,
+                        x=arrow_end_x,
+                        y=arrow_end_y,
                         ax=arrow_start_x,
                         ay=arrow_start_y,
                         xref='x',
@@ -197,10 +209,10 @@ def create_interactive_graph(game):
                         ayref='y',
                         showarrow=True,
                         arrowhead=2,
-                        arrowsize=1,
+                        arrowsize=1.5,
                         arrowwidth=2,
                         arrowcolor='#888',
-                        standoff=25,
+                        standoff=0,
                     ))
 
     # Create figure
