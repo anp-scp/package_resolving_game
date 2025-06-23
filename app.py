@@ -205,6 +205,20 @@ def display_boolean_clauses(game):
 def main():
     st.title("📦 Package Dependency Resolution Game")
     st.write("Solve package dependencies like a package manager!")
+    st.markdown(
+        """Whenever we install a package from a package manager like `pip`, `apt`, `conda`, etc., the package manager has to
+        ensure that all direct and indirect dependencies of the package are satisfied without any conflicts. Such dependencies
+        can be represented as a directed graph, where nodes are packages and edges represent dependencies.
+        """
+    )
+    st.write(
+        """In this game, you will play the role of a package manager and resolve package dependencies by selecting packages to install. The goal is
+        to select packages such that all dependencies for the root package are satisfied without any conflicts."""
+    )
+    st.markdown(
+        """Before starting, we recommend that you go through this article which explains what happens behing the scesnes when you install a package using a package manager:
+        [Boolean Propositional Logic for software installations?](https://anp-scp.github.io/blog/2025/06/12/boolean-propositional-logic-for-software-installations/)"""
+    )
 
     # Sidebar for game controls
     with st.sidebar:
