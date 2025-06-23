@@ -6,6 +6,8 @@ from game_logic import PackageDependencyGame
 from graph_generator import generate_sample_graphs
 from boolean_solver import BooleanSolver
 import json
+import random
+import colorsys
 
 # Configure page
 st.set_page_config(page_title="Package Dependency Resolution Game",
@@ -21,6 +23,21 @@ if 'mode' not in st.session_state:
 if 'selected_scenario' not in st.session_state:
     st.session_state.selected_scenario = 0
 
+def generate_high_contrast_colors(n, seed=None):
+    """
+    Generate n visually distinct, high-contrast colors.
+    Returns a list of hex color strings.
+    Optionally takes a random seed for reproducibility.
+    """
+    rng = random.Random(seed)
+    hues = [(i / n) for i in range(n)]
+    rng.shuffle(hues)
+    colors = []
+    for h in hues:
+        # High saturation and value for vivid colors
+        r, g, b = colorsys.hsv_to_rgb(h, 0.85, 0.95)
+        colors.append(f'#{int(r*255):02x}{int(g*255):02x}{int(b*255):02x}')
+    return colors
 
 def create_matplotlib_graph(game):
     """Create a matplotlib graph from the game state"""
@@ -36,6 +53,9 @@ def create_matplotlib_graph(game):
     # Prepare node colors and edge colors for different border colors
     node_colors = []
     edge_colors = []
+    package_color_map = dict()
+    random_colors = generate_high_contrast_colors(len(G.nodes()), seed=17342)
+    clr_index = 0
     
     for node in G.nodes():
         if node in game.selected_packages:
@@ -47,7 +67,11 @@ def create_matplotlib_graph(game):
         if node == game.root_package:
             edge_colors.append('#87CEEB')  # Sky blue for root package
         else:
-            edge_colors.append('#888888')    # Black for other packages
+            if package_color_map.get(node[:node.find('==')]) is None:
+                package_color_map[node[:node.find('==')]] = random_colors[clr_index]
+                clr_index += 1
+            edge_colors.append(package_color_map[node[:node.find('==')]])
+            # edge_colors.append('#888888')    # Black for other packages
     
     # Draw edges first (so they appear behind nodes)
     nx.draw_networkx_edges(G, pos, ax=ax, 
