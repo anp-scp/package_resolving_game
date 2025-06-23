@@ -28,12 +28,24 @@ class BooleanSolver:
             return package.split('==')[0]
         return package
     
+    def _get_clean_name(self, package: str) -> str:
+        """Get clean package name for display (remove version separators)"""
+        name = self._get_package_name(package)
+        version = package.replace(name, '').lstrip('-=')
+        return f"{name}{version}" if version else name
+    
     def generate_clauses(self) -> List[List[Tuple[str, bool]]]:
         """Generate boolean clauses representing the dependency constraints"""
         clauses = []
+        self.original_formulas = []  # Track original unsimplified formulas
         
         # 1. Root package must be installed
         clauses.append([(self.root_package, True)])
+        self.original_formulas.append({
+            'type': 'root',
+            'formula': f"{self._get_clean_name(self.root_package)}",
+            'description': f"Root package {self._get_clean_name(self.root_package)} must be installed"
+        })
         
         # 2. At most one version of each package can be selected
         # NOT (X1 AND X2) = (NOT X1) OR (NOT X2)
@@ -42,6 +54,14 @@ class BooleanSolver:
                 # For each pair of versions, at least one must be false
                 for pkg1, pkg2 in combinations(versions, 2):
                     clauses.append([(pkg1, False), (pkg2, False)])
+                    # Original formula: NOT (X1 AND X2)
+                    clean_pkg1 = self._get_clean_name(pkg1)
+                    clean_pkg2 = self._get_clean_name(pkg2)
+                    self.original_formulas.append({
+                        'type': 'version_constraint',
+                        'formula': f"¬({clean_pkg1} ∧ {clean_pkg2})",
+                        'description': f"Cannot select both {clean_pkg1} and {clean_pkg2}"
+                    })
         
         # 3. Dependency constraints: if package A is selected, its dependencies must be satisfied
         # A -> (B1 OR B2) becomes (NOT A) OR (B1 OR B2)
@@ -63,6 +83,20 @@ class BooleanSolver:
                     clause = [(package, False)]  # NOT package
                     clause += [(dep, True) for dep in dep_versions]  # OR all versions
                     clauses.append(clause)
+                    
+                    # Original formula: A -> (B1 OR B2 OR ...)
+                    clean_package = self._get_clean_name(package)
+                    if len(dep_versions) == 1:
+                        clean_deps = self._get_clean_name(dep_versions[0])
+                    else:
+                        clean_deps = " ∨ ".join([self._get_clean_name(dep) for dep in dep_versions])
+                        clean_deps = f"({clean_deps})"
+                    
+                    self.original_formulas.append({
+                        'type': 'dependency',
+                        'formula': f"{clean_package} → {clean_deps}",
+                        'description': f"If {clean_package} is selected, then {clean_deps} must be selected"
+                    })
         
         return clauses
     
@@ -198,3 +232,9 @@ class BooleanSolver:
             'max_clause_length': max(len(clause) for clause in clauses) if clauses else 0,
             'min_clause_length': min(len(clause) for clause in clauses) if clauses else 0
         }
+    
+    def get_original_formulas(self) -> List[Dict[str, str]]:
+        """Get the original unsimplified boolean formulas"""
+        if not hasattr(self, 'original_formulas'):
+            self.generate_clauses()  # Generate if not already done
+        return self.original_formulas

@@ -142,39 +142,40 @@ def display_boolean_clauses(game):
     st.subheader("Boolean Formula Analysis")
     st.write("The dependency constraints are converted to boolean clauses. All must be True:")
     
-    # Group clauses by type for better explanation
+    # Get original formulas and evaluate them
+    original_formulas = boolean_solver.get_original_formulas()
     root_clauses = []
     version_clauses = []
     dependency_clauses = []
     
-    for i, clause in enumerate(clauses):
+    for i, (clause, formula_info) in enumerate(zip(clauses, original_formulas)):
         is_satisfied = boolean_solver.evaluate_clause(clause, game.selected_packages)
-        clause_text = boolean_solver.format_clause_for_display(clause)
         color = "green" if is_satisfied else "red"
         status = "✓ True" if is_satisfied else "✗ False"
         
         clause_info = {
             'index': i + 1,
-            'text': clause_text,
+            'original_formula': formula_info['formula'],
+            'description': formula_info['description'],
             'satisfied': is_satisfied,
             'color': color,
             'status': status,
-            'clause': clause
+            'type': formula_info['type']
         }
         
-        # Categorize clauses
-        if len(clause) == 1 and clause[0][1] == True:
+        # Categorize clauses by type
+        if formula_info['type'] == 'root':
             root_clauses.append(clause_info)
-        elif all(not literal[1] for literal in clause):
+        elif formula_info['type'] == 'version_constraint':
             version_clauses.append(clause_info)
-        else:
+        elif formula_info['type'] == 'dependency':
             dependency_clauses.append(clause_info)
     
     # Display root package constraint
     if root_clauses:
         st.write("**Root Package Constraint:**")
         for clause_info in root_clauses:
-            st.markdown(f"Term {clause_info['index']}: {clause_info['text']}")
+            st.markdown(f"Term {clause_info['index']}: {clause_info['original_formula']}")
             st.markdown(f"<span style='color: {clause_info['color']}; font-weight: bold;'>{clause_info['status']}</span>", 
                        unsafe_allow_html=True)
         st.write("---")
@@ -183,7 +184,7 @@ def display_boolean_clauses(game):
     if version_clauses:
         st.write("**Version Uniqueness Constraints (at most one version per package):**")
         for clause_info in version_clauses:
-            st.markdown(f"Term {clause_info['index']}: {clause_info['text']}")
+            st.markdown(f"Term {clause_info['index']}: {clause_info['original_formula']}")
             st.markdown(f"<span style='color: {clause_info['color']}; font-weight: bold;'>{clause_info['status']}</span>", 
                        unsafe_allow_html=True)
         st.write("---")
@@ -192,7 +193,7 @@ def display_boolean_clauses(game):
     if dependency_clauses:
         st.write("**Dependency Implications (if package selected, dependencies must be satisfied):**")
         for clause_info in dependency_clauses:
-            st.markdown(f"Term {clause_info['index']}: {clause_info['text']}")
+            st.markdown(f"Term {clause_info['index']}: {clause_info['original_formula']}")
             st.markdown(f"<span style='color: {clause_info['color']}; font-weight: bold;'>{clause_info['status']}</span>", 
                        unsafe_allow_html=True)
         st.write("---")
