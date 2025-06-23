@@ -95,20 +95,20 @@ class PackageDependencyGame:
             # Fallback to spring layout if graph has cycles
             return nx.spring_layout(self.dependency_graph, k=2, iterations=50)
     
-    def select_package(self, package: str) -> bool:
-        """Select a package. Returns True if selection was successful."""
+    def select_package(self, package: str) -> int:
+        """Select a package. Returns 1 if selection was successful."""
         if package not in self.dependency_graph.nodes():
-            return False
+            return -1
         
         # Check if selecting this package would violate version constraints
         package_name = self.get_package_name(package)
         for selected in self.selected_packages:
             if self.get_package_name(selected) == package_name:
                 # Cannot select two versions of the same package
-                return False
+                return 0
         
         self.selected_packages.add(package)
-        return True
+        return 1
     
     def deselect_package(self, package: str) -> bool:
         """Deselect a package. Returns True if deselection was successful."""

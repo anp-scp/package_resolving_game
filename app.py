@@ -306,9 +306,14 @@ def main():
                 if st.button(button_text, key=f"btn_{package}"):
                     if is_selected:
                         game.deselect_package(package)
+                        st.rerun()
                     else:
-                        game.select_package(package)
-                    st.rerun()
+                        if(game.select_package(package) == 1):
+                            st.rerun()
+                        elif(game.select_package(package) == 0):
+                            st.warning("Cannot select multiple versions of the same package. Deselect the previous version.",icon="⚠️")
+                        else:
+                            st.warning("Failed to select package. Please try again.", icon="❌")                       
 
     # Game status
     st.subheader("Game Status")
