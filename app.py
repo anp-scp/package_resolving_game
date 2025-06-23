@@ -47,7 +47,7 @@ def create_matplotlib_graph(game):
         if node == game.root_package:
             edge_colors.append('#87CEEB')  # Sky blue for root package
         else:
-            edge_colors.append('black')    # Black for other packages
+            edge_colors.append('#888888')    # Black for other packages
     
     # Draw edges first (so they appear behind nodes)
     nx.draw_networkx_edges(G, pos, ax=ax, 
