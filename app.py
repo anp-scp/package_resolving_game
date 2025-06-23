@@ -54,6 +54,14 @@ def create_interactive_graph(game):
         dep_text = f"Dependencies: {', '.join(dependencies) if dependencies else 'None'}"
         node_info.append(f"{node}<br>{dep_text}")
 
+    # Prepare border colors - sky blue for root package, black for others
+    border_colors = []
+    for node in G.nodes():
+        if node == game.root_package:
+            border_colors.append('#87CEEB')  # Sky blue for root package
+        else:
+            border_colors.append('black')    # Black for other packages
+    
     # Create node trace
     node_trace = go.Scatter(x=node_x,
                             y=node_y,
@@ -65,7 +73,7 @@ def create_interactive_graph(game):
                             hoverinfo='text',
                             marker=dict(size=50,
                                         color=node_colors,
-                                        line=dict(width=2, color='black')),
+                                        line=dict(width=2, color=border_colors)),
                             customdata=list(G.nodes()),
                             name="Packages")
 
