@@ -9,7 +9,8 @@ import json
 # Configure page
 st.set_page_config(page_title="Package Dependency Resolution Game",
                    page_icon="📦",
-                   layout="wide")
+                   layout="centered",
+                   initial_sidebar_state="expanded")
 
 # Initialize session state
 if 'game' not in st.session_state:
