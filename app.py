@@ -263,28 +263,9 @@ def main():
         return
 
     # Main game area
-    if st.session_state.mode == 'boolean':
-        # Boolean mode: Two column layout
-        col1, col2 = st.columns([2, 1])
-
-        with col1:
-            st.subheader("Dependency Graph")
-            fig = create_interactive_graph(game)
-
-            # Handle node clicks
-            selected_points = st.plotly_chart(fig,
-                                              use_container_width=True,
-                                              key="graph")
-
-        with col2:
-            display_boolean_clauses(game)
-    else:
-        # Wild mode: Full width graph
-        st.subheader("Dependency Graph")
-        fig = create_interactive_graph(game)
-        selected_points = st.plotly_chart(fig,
-                                          use_container_width=True,
-                                          key="graph")
+    st.subheader("Dependency Graph")
+    fig = create_interactive_graph(game)
+    selected_points = st.plotly_chart(fig, use_container_width=True, key="graph")
 
     # Handle graph interactions
     if st.session_state.get('graph_click'):
@@ -334,6 +315,10 @@ def main():
         st.subheader("Selected Packages")
         selected_list = sorted(list(game.selected_packages))
         st.write(", ".join(selected_list))
+    
+    # Display Boolean Formula Analysis at the bottom in Boolean mode
+    if st.session_state.mode == 'boolean':
+        display_boolean_clauses(game)
 
 
 if __name__ == "__main__":
