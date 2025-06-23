@@ -77,114 +77,46 @@ def create_interactive_graph(game):
                             customdata=list(G.nodes()),
                             name="Packages")
 
-    # Prepare edge traces with arrows - handle straight and curved separately
-    edge_traces = []
+    # Prepare edge traces with arrows
+    edge_x = []
+    edge_y = []
     arrow_annotations = []
-    
-    # Group edges by source node
-    edges_by_source = {}
+
     for edge in G.edges():
-        source = edge[0]
-        if source not in edges_by_source:
-            edges_by_source[source] = []
-        edges_by_source[source].append(edge)
-    
-    # Process each source group
-    for source, source_edges in edges_by_source.items():
-        num_edges = len(source_edges)
-        
-        if num_edges == 1:
-            # Single edge - straight line
-            edge = source_edges[0]
-            x0, y0 = pos[edge[0]]
-            x1, y1 = pos[edge[1]]
-            
-            edge_trace = go.Scatter(
-                x=[x0, x1], y=[y0, y1],
-                line=dict(width=2, color='#888'),
-                hoverinfo='none', mode='lines', showlegend=False
-            )
-            edge_traces.append(edge_trace)
-            
-            # Arrow for straight edge
-            arrow_annotations.append({
-                'x': x1, 'y': y1,
-                'ax': x0 + (x1 - x0) * 0.15,
-                'ay': y0 + (y1 - y0) * 0.15,
-                'xref': 'x', 'yref': 'y', 'axref': 'x', 'ayref': 'y',
-                'showarrow': True, 'arrowhead': 2, 'arrowsize': 1, 
-                'arrowwidth': 2, 'arrowcolor': '#888', 'standoff': 20
-            })
-        else:
-            # Multiple edges - use curves for all
-            for i, edge in enumerate(source_edges):
-                x0, y0 = pos[edge[0]]
-                x1, y1 = pos[edge[1]]
-                
-                # Calculate curve offset
-                if num_edges == 2:
-                    curve_offsets = [-0.3, 0.3]
-                elif num_edges == 3:
-                    curve_offsets = [-0.4, 0, 0.4]
-                else:
-                    curve_offsets = [0.6 * (2*j/(num_edges-1) - 1) for j in range(num_edges)]
-                
-                curve_offset = curve_offsets[i]
-                
-                # Create curved path
-                mid_x, mid_y = (x0 + x1) / 2, (y0 + y1) / 2
-                edge_length = ((x1 - x0)**2 + (y1 - y0)**2)**0.5
-                
-                if edge_length > 0:
-                    perp_x = -(y1 - y0) / edge_length * curve_offset
-                    perp_y = (x1 - x0) / edge_length * curve_offset
-                else:
-                    perp_x = perp_y = 0
-                
-                ctrl_x, ctrl_y = mid_x + perp_x, mid_y + perp_y
-                
-                # Generate curve points
-                curve_x, curve_y = [], []
-                for t in range(21):
-                    t_norm = t / 20
-                    px = (1-t_norm)**2 * x0 + 2*(1-t_norm)*t_norm * ctrl_x + t_norm**2 * x1
-                    py = (1-t_norm)**2 * y0 + 2*(1-t_norm)*t_norm * ctrl_y + t_norm**2 * y1
-                    curve_x.append(px)
-                    curve_y.append(py)
-                
-                curved_trace = go.Scatter(
-                    x=curve_x, y=curve_y,
-                    line=dict(width=2, color='#888'),
-                    hoverinfo='none', mode='lines', showlegend=False
-                )
-                edge_traces.append(curved_trace)
-                
-                # Arrow for curved edge - use simple direction calculation
-                # Calculate direction from curve midpoint to end
-                mid_curve_x = (1-0.5)**2 * x0 + 2*(1-0.5)*0.5 * ctrl_x + 0.5**2 * x1
-                mid_curve_y = (1-0.5)**2 * y0 + 2*(1-0.5)*0.5 * ctrl_y + 0.5**2 * y1
-                
-                # Direction vector from midpoint to end
-                dir_x = x1 - mid_curve_x
-                dir_y = y1 - mid_curve_y
-                
-                # Normalize and scale
-                dir_length = (dir_x**2 + dir_y**2)**0.5
-                if dir_length > 0:
-                    dir_x = dir_x / dir_length * 0.5
-                    dir_y = dir_y / dir_length * 0.5
-                
-                arrow_annotations.append({
-                    'x': x1, 'y': y1,
-                    'ax': x1 - dir_x, 'ay': y1 - dir_y,
-                    'xref': 'x', 'yref': 'y', 'axref': 'x', 'ayref': 'y',
-                    'showarrow': True, 'arrowhead': 2, 'arrowsize': 1,
-                    'arrowwidth': 2, 'arrowcolor': '#888', 'standoff': 15
-                })
+        x0, y0 = pos[edge[0]]
+        x1, y1 = pos[edge[1]]
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
+
+        # Add arrow annotation for each edge
+        arrow_annotations.append(
+            dict(
+                x=x1,
+                y=y1,
+                ax=x0 + (x1 - x0) * 0.1,  # Arrow starts at 10% of edge length
+                ay=y0 + (y1 - y0) * 0.1,
+                xref='x',
+                yref='y',
+                axref='x',
+                ayref='y',
+                showarrow=True,
+                arrowhead=2,
+                arrowsize=1,
+                arrowwidth=2,
+                arrowcolor='#888',
+                standoff=25,  # Distance from node center
+            ))
+
+    edge_trace = go.Scatter(x=edge_x,
+                            y=edge_y,
+                            line=dict(width=2, color='#888'),
+                            hoverinfo='none',
+                            mode='lines',
+                            name="Dependencies")
 
     # Create figure
     fig = go.Figure(
-        data=edge_traces + [node_trace],
+        data=[edge_trace, node_trace],
         layout=go.
         Layout(title=dict(
             text="Package Dependency Graph - Click nodes to select/deselect",
