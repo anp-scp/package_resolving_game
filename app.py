@@ -47,7 +47,7 @@ def create_matplotlib_graph(game):
         if node == game.root_package:
             edge_colors.append('#87CEEB')  # Sky blue for root package
         else:
-            edge_colors.append('#888888')    # Gray for other packages
+            edge_colors.append('#888888')    # Black for other packages
     
     # Draw edges first (so they appear behind nodes)
     nx.draw_networkx_edges(G, pos, ax=ax, 
@@ -206,18 +206,16 @@ def main():
                                     format_func=lambda x: scenario_names[x])
 
         if selected_idx != st.session_state.selected_scenario or st.session_state.game is None:
-            with st.spinner("Loading scenario..."):
-                st.session_state.selected_scenario = selected_idx
-                scenario = scenarios[selected_idx]
-                st.session_state.game = PackageDependencyGame(
-                    scenario['graph'], scenario['root'])
+            st.session_state.selected_scenario = selected_idx
+            scenario = scenarios[selected_idx]
+            st.session_state.game = PackageDependencyGame(
+                scenario['graph'], scenario['root'])
 
         # Game controls
         if st.button("Reset Game"):
-            with st.spinner("Resetting game..."):
-                scenario = scenarios[st.session_state.selected_scenario]
-                st.session_state.game = PackageDependencyGame(
-                    scenario['graph'], scenario['root'])
+            scenario = scenarios[st.session_state.selected_scenario]
+            st.session_state.game = PackageDependencyGame(
+                scenario['graph'], scenario['root'])
             st.rerun()
 
         # Display game rules
@@ -239,11 +237,7 @@ def main():
 
     # Main game area
     st.subheader("Dependency Graph")
-    
-    # Show spinner while generating graph
-    with st.spinner("Generating dependency graph..."):
-        fig = create_matplotlib_graph(game)
-    
+    fig = create_matplotlib_graph(game)
     st.pyplot(fig, use_container_width=True)
 
     # Graph is now non-interactive - use buttons below for interaction
@@ -265,11 +259,10 @@ def main():
             button_text = f"{'✓' if is_selected else '○'} {package_name} v{version}"
 
             if st.button(button_text, key=f"btn_{package}"):
-                with st.spinner("Updating package selection..."):
-                    if is_selected:
-                        game.deselect_package(package)
-                    else:
-                        game.select_package(package)
+                if is_selected:
+                    game.deselect_package(package)
+                else:
+                    game.select_package(package)
                 st.rerun()
 
     # Game status
@@ -298,8 +291,7 @@ def main():
 
     # Display Boolean Formula Analysis at the bottom in Boolean mode
     if st.session_state.mode == 'boolean':
-        with st.spinner("Analyzing boolean constraints..."):
-            display_boolean_clauses(game)
+        display_boolean_clauses(game)
 
 
 if __name__ == "__main__":
