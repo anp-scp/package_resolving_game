@@ -81,21 +81,16 @@ def create_interactive_graph(game):
     edge_traces = []
     arrow_annotations = []
     
-    # Group edges by source node to detect potential overlaps
-    edges_by_source = {}
+    # First pass: create all edges with their traces
     for edge in G.edges():
-        source = edge[0]
-        if source not in edges_by_source:
-            edges_by_source[source] = []
-        edges_by_source[source].append(edge)
-    
-    for source, edges in edges_by_source.items():
-        if len(edges) == 1:
+        x0, y0 = pos[edge[0]]
+        x1, y1 = pos[edge[1]]
+        
+        # Check if this source has multiple edges (for curve decision)
+        source_edges = [e for e in G.edges() if e[0] == edge[0]]
+        
+        if len(source_edges) == 1:
             # Single edge - draw straight line
-            edge = edges[0]
-            x0, y0 = pos[edge[0]]
-            x1, y1 = pos[edge[1]]
-            
             edge_trace = go.Scatter(
                 x=[x0, x1],
                 y=[y0, y1],
@@ -105,8 +100,70 @@ def create_interactive_graph(game):
                 showlegend=False
             )
             edge_traces.append(edge_trace)
+        else:
+            # Multiple edges from same source - find which index this edge has
+            edge_index = source_edges.index(edge)
+            num_edges = len(source_edges)
             
-            # Add arrow annotation for straight edge
+            # Calculate curve offset based on edge index
+            if num_edges == 2:
+                curve_offsets = [-0.3, 0.3]
+            elif num_edges == 3:
+                curve_offsets = [-0.4, 0, 0.4]
+            else:
+                curve_offsets = [0.6 * (2*j/(num_edges-1) - 1) for j in range(num_edges)]
+            
+            curve_offset = curve_offsets[edge_index]
+            
+            # Create curved path
+            mid_x = (x0 + x1) / 2
+            mid_y = (y0 + y1) / 2
+            
+            # Calculate perpendicular offset
+            edge_length = ((x1 - x0)**2 + (y1 - y0)**2)**0.5
+            if edge_length > 0:
+                perp_x = -(y1 - y0) / edge_length * curve_offset
+                perp_y = (x1 - x0) / edge_length * curve_offset
+            else:
+                perp_x = perp_y = 0
+            
+            # Control point for curve
+            ctrl_x = mid_x + perp_x
+            ctrl_y = mid_y + perp_y
+            
+            # Generate curved path points
+            curve_points = 20
+            curve_x = []
+            curve_y = []
+            
+            for t in range(curve_points + 1):
+                t_norm = t / curve_points
+                # Quadratic Bezier curve
+                px = (1-t_norm)**2 * x0 + 2*(1-t_norm)*t_norm * ctrl_x + t_norm**2 * x1
+                py = (1-t_norm)**2 * y0 + 2*(1-t_norm)*t_norm * ctrl_y + t_norm**2 * y1
+                curve_x.append(px)
+                curve_y.append(py)
+            
+            edge_trace = go.Scatter(
+                x=curve_x,
+                y=curve_y,
+                line=dict(width=2, color='#888'),
+                hoverinfo='none',
+                mode='lines',
+                showlegend=False
+            )
+            edge_traces.append(edge_trace)
+
+    # Second pass: create arrows for all edges
+    for edge in G.edges():
+        x0, y0 = pos[edge[0]]
+        x1, y1 = pos[edge[1]]
+        
+        # Check if this source has multiple edges (for curve decision)
+        source_edges = [e for e in G.edges() if e[0] == edge[0]]
+        
+        if len(source_edges) == 1:
+            # Arrow for straight edge
             arrow_annotations.append(
                 dict(
                     x=x1,
@@ -125,83 +182,56 @@ def create_interactive_graph(game):
                     standoff=25,
                 ))
         else:
-            # Multiple edges from same source - create curves
-            for i, edge in enumerate(edges):
-                x0, y0 = pos[edge[0]]
-                x1, y1 = pos[edge[1]]
-                
-                # Calculate curve offset based on edge index
-                num_edges = len(edges)
-                if num_edges == 2:
-                    curve_offsets = [-0.3, 0.3]
-                elif num_edges == 3:
-                    curve_offsets = [-0.4, 0, 0.4]
-                else:
-                    curve_offsets = [0.6 * (2*j/(num_edges-1) - 1) for j in range(num_edges)]
-                
-                curve_offset = curve_offsets[i]
-                
-                # Create curved path
-                mid_x = (x0 + x1) / 2
-                mid_y = (y0 + y1) / 2
-                
-                # Calculate perpendicular offset
-                edge_length = ((x1 - x0)**2 + (y1 - y0)**2)**0.5
-                if edge_length > 0:
-                    perp_x = -(y1 - y0) / edge_length * curve_offset
-                    perp_y = (x1 - x0) / edge_length * curve_offset
-                else:
-                    perp_x = perp_y = 0
-                
-                # Control point for curve
-                ctrl_x = mid_x + perp_x
-                ctrl_y = mid_y + perp_y
-                
-                # Generate curved path points
-                curve_points = 20
-                curve_x = []
-                curve_y = []
-                
-                for t in range(curve_points + 1):
-                    t_norm = t / curve_points
-                    # Quadratic Bezier curve
-                    px = (1-t_norm)**2 * x0 + 2*(1-t_norm)*t_norm * ctrl_x + t_norm**2 * x1
-                    py = (1-t_norm)**2 * y0 + 2*(1-t_norm)*t_norm * ctrl_y + t_norm**2 * y1
-                    curve_x.append(px)
-                    curve_y.append(py)
-                
-                edge_trace = go.Scatter(
-                    x=curve_x,
-                    y=curve_y,
-                    line=dict(width=2, color='#888'),
-                    hoverinfo='none',
-                    mode='lines',
-                    showlegend=False
-                )
-                edge_traces.append(edge_trace)
-                
-                # Add arrow annotation at end of curve
-                arrow_start_t = 0.9  # Arrow starts at 90% along curve
-                arrow_start_x = (1-arrow_start_t)**2 * x0 + 2*(1-arrow_start_t)*arrow_start_t * ctrl_x + arrow_start_t**2 * x1
-                arrow_start_y = (1-arrow_start_t)**2 * y0 + 2*(1-arrow_start_t)*arrow_start_t * ctrl_y + arrow_start_t**2 * y1
-                
-                arrow_annotations.append(
-                    dict(
-                        x=x1,
-                        y=y1,
-                        ax=arrow_start_x,
-                        ay=arrow_start_y,
-                        xref='x',
-                        yref='y',
-                        axref='x',
-                        ayref='y',
-                        showarrow=True,
-                        arrowhead=2,
-                        arrowsize=1,
-                        arrowwidth=2,
-                        arrowcolor='#888',
-                        standoff=25,
-                    ))
+            # Arrow for curved edge
+            edge_index = source_edges.index(edge)
+            num_edges = len(source_edges)
+            
+            # Calculate curve offset (same as before)
+            if num_edges == 2:
+                curve_offsets = [-0.3, 0.3]
+            elif num_edges == 3:
+                curve_offsets = [-0.4, 0, 0.4]
+            else:
+                curve_offsets = [0.6 * (2*j/(num_edges-1) - 1) for j in range(num_edges)]
+            
+            curve_offset = curve_offsets[edge_index]
+            
+            # Calculate control point (same as before)
+            mid_x = (x0 + x1) / 2
+            mid_y = (y0 + y1) / 2
+            
+            edge_length = ((x1 - x0)**2 + (y1 - y0)**2)**0.5
+            if edge_length > 0:
+                perp_x = -(y1 - y0) / edge_length * curve_offset
+                perp_y = (x1 - x0) / edge_length * curve_offset
+            else:
+                perp_x = perp_y = 0
+            
+            ctrl_x = mid_x + perp_x
+            ctrl_y = mid_y + perp_y
+            
+            # Calculate arrow start position on curve
+            arrow_start_t = 0.9
+            arrow_start_x = (1-arrow_start_t)**2 * x0 + 2*(1-arrow_start_t)*arrow_start_t * ctrl_x + arrow_start_t**2 * x1
+            arrow_start_y = (1-arrow_start_t)**2 * y0 + 2*(1-arrow_start_t)*arrow_start_t * ctrl_y + arrow_start_t**2 * y1
+            
+            arrow_annotations.append(
+                dict(
+                    x=x1,
+                    y=y1,
+                    ax=arrow_start_x,
+                    ay=arrow_start_y,
+                    xref='x',
+                    yref='y',
+                    axref='x',
+                    ayref='y',
+                    showarrow=True,
+                    arrowhead=2,
+                    arrowsize=1,
+                    arrowwidth=2,
+                    arrowcolor='#888',
+                    standoff=25,
+                ))
 
     # Create figure
     fig = go.Figure(
