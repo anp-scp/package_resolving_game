@@ -77,50 +77,11 @@ def create_interactive_graph(game):
                             customdata=list(G.nodes()),
                             name="Packages")
 
-    # Prepare edge traces with arrows - simpler approach
-    edge_x = []
-    edge_y = []
+    # Prepare edge traces with arrows - handle straight and curved separately
+    edge_traces = []
     arrow_annotations = []
     
-    # Create all edges as a single trace first
-    for edge in G.edges():
-        x0, y0 = pos[edge[0]]
-        x1, y1 = pos[edge[1]]
-        edge_x.extend([x0, x1, None])
-        edge_y.extend([y0, y1, None])
-    
-    edge_trace = go.Scatter(x=edge_x, y=edge_y,
-                           line=dict(width=2, color='#888'),
-                           hoverinfo='none',
-                           mode='lines',
-                           name="Dependencies")
-    
-    # Create arrows for every single edge - guaranteed coverage
-    edge_count = 0
-    for edge in G.edges():
-        x0, y0 = pos[edge[0]]
-        x1, y1 = pos[edge[1]]
-        
-        # Simple arrow at end of each edge
-        arrow_annotations.append({
-            'x': x1,
-            'y': y1, 
-            'ax': x0 + (x1 - x0) * 0.15,
-            'ay': y0 + (y1 - y0) * 0.15,
-            'xref': 'x',
-            'yref': 'y',
-            'axref': 'x', 
-            'ayref': 'y',
-            'showarrow': True,
-            'arrowhead': 2,
-            'arrowsize': 1,
-            'arrowwidth': 2,
-            'arrowcolor': '#888',
-            'standoff': 20
-        })
-        edge_count += 1
-    
-    # Now handle curved edges for overlaps (visual only)
+    # Group edges by source node
     edges_by_source = {}
     for edge in G.edges():
         source = edge[0]
@@ -128,11 +89,34 @@ def create_interactive_graph(game):
             edges_by_source[source] = []
         edges_by_source[source].append(edge)
     
-    # Additional curved traces for sources with multiple edges
-    edge_traces = [edge_trace]
+    # Process each source group
     for source, source_edges in edges_by_source.items():
-        if len(source_edges) > 1:
-            num_edges = len(source_edges)
+        num_edges = len(source_edges)
+        
+        if num_edges == 1:
+            # Single edge - straight line
+            edge = source_edges[0]
+            x0, y0 = pos[edge[0]]
+            x1, y1 = pos[edge[1]]
+            
+            edge_trace = go.Scatter(
+                x=[x0, x1], y=[y0, y1],
+                line=dict(width=2, color='#888'),
+                hoverinfo='none', mode='lines', showlegend=False
+            )
+            edge_traces.append(edge_trace)
+            
+            # Arrow for straight edge
+            arrow_annotations.append({
+                'x': x1, 'y': y1,
+                'ax': x0 + (x1 - x0) * 0.15,
+                'ay': y0 + (y1 - y0) * 0.15,
+                'xref': 'x', 'yref': 'y', 'axref': 'x', 'ayref': 'y',
+                'showarrow': True, 'arrowhead': 2, 'arrowsize': 1, 
+                'arrowwidth': 2, 'arrowcolor': '#888', 'standoff': 20
+            })
+        else:
+            # Multiple edges - use curves for all
             for i, edge in enumerate(source_edges):
                 x0, y0 = pos[edge[0]]
                 x1, y1 = pos[edge[1]]
@@ -170,10 +154,23 @@ def create_interactive_graph(game):
                 
                 curved_trace = go.Scatter(
                     x=curve_x, y=curve_y,
-                    line=dict(width=3, color='#888'),  # Slightly thicker for visibility
+                    line=dict(width=2, color='#888'),
                     hoverinfo='none', mode='lines', showlegend=False
                 )
                 edge_traces.append(curved_trace)
+                
+                # Arrow for curved edge
+                t_arrow = 0.85
+                arrow_start_x = (1-t_arrow)**2 * x0 + 2*(1-t_arrow)*t_arrow * ctrl_x + t_arrow**2 * x1
+                arrow_start_y = (1-t_arrow)**2 * y0 + 2*(1-t_arrow)*t_arrow * ctrl_y + t_arrow**2 * y1
+                
+                arrow_annotations.append({
+                    'x': x1, 'y': y1,
+                    'ax': arrow_start_x, 'ay': arrow_start_y,
+                    'xref': 'x', 'yref': 'y', 'axref': 'x', 'ayref': 'y',
+                    'showarrow': True, 'arrowhead': 2, 'arrowsize': 1,
+                    'arrowwidth': 2, 'arrowcolor': '#888', 'standoff': 20
+                })
 
     # Create figure
     fig = go.Figure(
