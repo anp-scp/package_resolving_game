@@ -77,46 +77,135 @@ def create_interactive_graph(game):
                             customdata=list(G.nodes()),
                             name="Packages")
 
-    # Prepare edge traces with arrows
-    edge_x = []
-    edge_y = []
+    # Prepare edge traces with curves to avoid overlaps
+    edge_traces = []
     arrow_annotations = []
-
+    
+    # Group edges by source node to detect potential overlaps
+    edges_by_source = {}
     for edge in G.edges():
-        x0, y0 = pos[edge[0]]
-        x1, y1 = pos[edge[1]]
-        edge_x.extend([x0, x1, None])
-        edge_y.extend([y0, y1, None])
-
-        # Add arrow annotation for each edge
-        arrow_annotations.append(
-            dict(
-                x=x1,
-                y=y1,
-                ax=x0 + (x1 - x0) * 0.1,  # Arrow starts at 10% of edge length
-                ay=y0 + (y1 - y0) * 0.1,
-                xref='x',
-                yref='y',
-                axref='x',
-                ayref='y',
-                showarrow=True,
-                arrowhead=2,
-                arrowsize=1,
-                arrowwidth=2,
-                arrowcolor='#888',
-                standoff=25,  # Distance from node center
-            ))
-
-    edge_trace = go.Scatter(x=edge_x,
-                            y=edge_y,
-                            line=dict(width=2, color='#888'),
-                            hoverinfo='none',
-                            mode='lines',
-                            name="Dependencies")
+        source = edge[0]
+        if source not in edges_by_source:
+            edges_by_source[source] = []
+        edges_by_source[source].append(edge)
+    
+    for source, edges in edges_by_source.items():
+        if len(edges) == 1:
+            # Single edge - draw straight line
+            edge = edges[0]
+            x0, y0 = pos[edge[0]]
+            x1, y1 = pos[edge[1]]
+            
+            edge_trace = go.Scatter(
+                x=[x0, x1],
+                y=[y0, y1],
+                line=dict(width=2, color='#888'),
+                hoverinfo='none',
+                mode='lines',
+                showlegend=False
+            )
+            edge_traces.append(edge_trace)
+            
+            # Add arrow annotation
+            arrow_annotations.append(
+                dict(
+                    x=x1,
+                    y=y1,
+                    ax=x0 + (x1 - x0) * 0.1,
+                    ay=y0 + (y1 - y0) * 0.1,
+                    xref='x',
+                    yref='y',
+                    axref='x',
+                    ayref='y',
+                    showarrow=True,
+                    arrowhead=2,
+                    arrowsize=1,
+                    arrowwidth=2,
+                    arrowcolor='#888',
+                    standoff=25,
+                ))
+        else:
+            # Multiple edges from same source - create curves
+            for i, edge in enumerate(edges):
+                x0, y0 = pos[edge[0]]
+                x1, y1 = pos[edge[1]]
+                
+                # Calculate curve offset based on edge index
+                num_edges = len(edges)
+                if num_edges == 2:
+                    curve_offsets = [-0.3, 0.3]
+                elif num_edges == 3:
+                    curve_offsets = [-0.4, 0, 0.4]
+                else:
+                    curve_offsets = [0.6 * (2*j/(num_edges-1) - 1) for j in range(num_edges)]
+                
+                curve_offset = curve_offsets[i]
+                
+                # Create curved path
+                mid_x = (x0 + x1) / 2
+                mid_y = (y0 + y1) / 2
+                
+                # Calculate perpendicular offset
+                edge_length = ((x1 - x0)**2 + (y1 - y0)**2)**0.5
+                if edge_length > 0:
+                    perp_x = -(y1 - y0) / edge_length * curve_offset
+                    perp_y = (x1 - x0) / edge_length * curve_offset
+                else:
+                    perp_x = perp_y = 0
+                
+                # Control point for curve
+                ctrl_x = mid_x + perp_x
+                ctrl_y = mid_y + perp_y
+                
+                # Generate curved path points
+                curve_points = 20
+                curve_x = []
+                curve_y = []
+                
+                for t in range(curve_points + 1):
+                    t_norm = t / curve_points
+                    # Quadratic Bezier curve
+                    px = (1-t_norm)**2 * x0 + 2*(1-t_norm)*t_norm * ctrl_x + t_norm**2 * x1
+                    py = (1-t_norm)**2 * y0 + 2*(1-t_norm)*t_norm * ctrl_y + t_norm**2 * y1
+                    curve_x.append(px)
+                    curve_y.append(py)
+                
+                edge_trace = go.Scatter(
+                    x=curve_x,
+                    y=curve_y,
+                    line=dict(width=2, color='#888'),
+                    hoverinfo='none',
+                    mode='lines',
+                    showlegend=False
+                )
+                edge_traces.append(edge_trace)
+                
+                # Add arrow annotation at end of curve
+                arrow_start_t = 0.9  # Arrow starts at 90% along curve
+                arrow_start_x = (1-arrow_start_t)**2 * x0 + 2*(1-arrow_start_t)*arrow_start_t * ctrl_x + arrow_start_t**2 * x1
+                arrow_start_y = (1-arrow_start_t)**2 * y0 + 2*(1-arrow_start_t)*arrow_start_t * ctrl_y + arrow_start_t**2 * y1
+                
+                arrow_annotations.append(
+                    dict(
+                        x=x1,
+                        y=y1,
+                        ax=arrow_start_x,
+                        ay=arrow_start_y,
+                        xref='x',
+                        yref='y',
+                        axref='x',
+                        ayref='y',
+                        showarrow=True,
+                        arrowhead=2,
+                        arrowsize=1,
+                        arrowwidth=2,
+                        arrowcolor='#888',
+                        standoff=25,
+                    ))
 
     # Create figure
     fig = go.Figure(
-        data=[edge_trace, node_trace],
+        data=edge_traces + [node_trace],
         layout=go.
         Layout(title=dict(
             text="Package Dependency Graph - Click nodes to select/deselect",
