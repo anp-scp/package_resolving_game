@@ -47,8 +47,8 @@ def create_matplotlib_graph(game):
     pos = game.get_hierarchical_layout()
     
     # Create figure and axis
-    fig, ax = plt.subplots(1, 1, )
-    ax.set_aspect('equal')
+    fig, ax = plt.subplots(1, 1, figsize=(8, 4))
+    # ax.set_aspect('equal')
     
     # Prepare node colors and edge colors for different border colors
     node_colors = []
@@ -215,9 +215,10 @@ def main():
         """In this game, you will play the role of a package manager and resolve package dependencies by selecting packages to install. The goal is
         to select packages such that all dependencies for the root package are satisfied without any conflicts."""
     )
-    st.markdown(
-        """Before starting, we recommend that you go through this article which explains what happens behing the scesnes when you install a package using a package manager:
-        [Boolean Propositional Logic for software installations?](https://anp-scp.github.io/blog/2025/06/12/boolean-propositional-logic-for-software-installations/)"""
+    st.info(
+        """Before starting, we recommend that you go through this article which explains what happens behing the scenes when you install a package using a package manager:
+        [Boolean Propositional Logic for software installations?](https://anp-scp.github.io/blog/2025/06/12/boolean-propositional-logic-for-software-installations/)""",
+        icon="⚠️"
     )
 
     # Sidebar for game controls
@@ -233,7 +234,7 @@ def main():
         st.session_state.mode = 'wild' if mode == "Wild Mode" else 'boolean'
 
         if st.session_state.mode == 'boolean':
-            st.warning("Boolean analysis appears at the bottom of the page.",
+            st.info("Boolean analysis appears at the bottom of the page.",
                         icon="ℹ️")
 
         # Scenario selection
@@ -281,34 +282,33 @@ def main():
         return
 
     # Main game area
-    st.subheader("Dependency Graph")
-    fig = create_matplotlib_graph(game)
-    st.pyplot(fig, use_container_width=False)
+    st.markdown("---")
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        st.subheader("Dependency Graph")
+        fig = create_matplotlib_graph(game)
+        st.pyplot(fig, use_container_width=True)
+    with col2:
+        st.subheader("Package Selection")
+        st.write("Select packages by clicking the buttons below:")
 
-    # Graph is now non-interactive - use buttons below for interaction
+        packages = list(game.dependency_graph.nodes())
+        packages.sort()
+        cols = st.columns(min(2, len(packages)))
+        for i, package in enumerate(packages):
+            col_idx = i % len(cols)
+            package_name, version = game.parse_package_node(package)
 
-    # Alternative interaction method: Buttons for package selection
-    st.subheader("Package Selection")
-    st.write("Select packages by clicking the buttons below:")
+            with cols[col_idx]:
+                is_selected = package in game.selected_packages
+                button_text = f"{'✓' if is_selected else '○'} {package_name} v{version}"
 
-    packages = list(game.dependency_graph.nodes())
-    packages.sort()
-
-    cols = st.columns(min(4, len(packages)))
-    for i, package in enumerate(packages):
-        col_idx = i % len(cols)
-        package_name, version = game.parse_package_node(package)
-
-        with cols[col_idx]:
-            is_selected = package in game.selected_packages
-            button_text = f"{'✓' if is_selected else '○'} {package_name} v{version}"
-
-            if st.button(button_text, key=f"btn_{package}"):
-                if is_selected:
-                    game.deselect_package(package)
-                else:
-                    game.select_package(package)
-                st.rerun()
+                if st.button(button_text, key=f"btn_{package}"):
+                    if is_selected:
+                        game.deselect_package(package)
+                    else:
+                        game.select_package(package)
+                    st.rerun()
 
     # Game status
     st.subheader("Game Status")
