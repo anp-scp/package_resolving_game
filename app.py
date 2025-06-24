@@ -18,8 +18,6 @@ st.set_page_config(page_title="Package Dependency Resolution Game",
 # Initialize session state
 if 'game' not in st.session_state:
     st.session_state.game = None
-if 'mode' not in st.session_state:
-    st.session_state.mode = 'wild'
 if 'selected_scenario' not in st.session_state:
     st.session_state.selected_scenario = 0
 
@@ -110,7 +108,7 @@ def create_matplotlib_graph(game):
     
     return fig
 
-
+@st.dialog("Boolean Hints")
 def display_boolean_clauses(game):
     """Display boolean clauses with their evaluation status"""
     boolean_solver = BooleanSolver(game.dependency_graph, game.root_package)
@@ -152,54 +150,61 @@ def display_boolean_clauses(game):
         elif formula_info['type'] == 'dependency':
             dependency_clauses.append(clause_info)
 
-    # Display root package constraint
-    if root_clauses:
-        st.write("**Root Package Constraint:**")
-        for clause_info in root_clauses:
-            st.markdown(
-                f"Term {clause_info['index']}: {clause_info['original_formula']}"
-            )
-            st.markdown(
-                f"<span style='color: {clause_info['color']}; font-weight: bold;'>{clause_info['status']}</span>",
-                unsafe_allow_html=True)
-        st.write("---")
-
-    # Display version constraints
-    if version_clauses:
-        st.write(
-            "**Version Uniqueness Constraints (at most one version per package):**"
-        )
-        for clause_info in version_clauses:
-            st.markdown(
-                f"Term {clause_info['index']}: {clause_info['original_formula']}"
-            )
-            st.markdown(
-                f"<span style='color: {clause_info['color']}; font-weight: bold;'>{clause_info['status']}</span>",
-                unsafe_allow_html=True)
-        st.write("---")
-
-    # Display dependency constraints
-    if dependency_clauses:
-        st.write(
-            "**Dependency Implications (if package selected, dependencies must be satisfied):**"
-        )
-        for clause_info in dependency_clauses:
-            st.markdown(
-                f"Term {clause_info['index']}: {clause_info['original_formula']}"
-            )
-            st.markdown(
-                f"<span style='color: {clause_info['color']}; font-weight: bold;'>{clause_info['status']}</span>",
-                unsafe_allow_html=True)
-        st.write("---")
 
     # Overall satisfaction
     all_satisfied = all(clause_info['satisfied']
                         for clause_info in root_clauses + version_clauses +
                         dependency_clauses)
     overall_color = "green" if all_satisfied else "red"
-    overall_status = "✓ ALL CONSTRAINTS SATISFIED" if all_satisfied else "✗ CONSTRAINTS VIOLATED"
+    overall_status = "✓ ALL CONSTRAINTS SATISFIED" if all_satisfied else "✗ SOME CONSTRAINTS VIOLATED. CHECK THEM BELOW"
     st.markdown(f"<h4 style='color: {overall_color};'>{overall_status}</h4>",
                 unsafe_allow_html=True)
+    
+    tab1, tab2, tab3 = st.tabs(["Root Constraints", "Version Constraints", "Dependency Constraints"])
+    # Display root package constraint
+    if root_clauses:
+        with tab1:
+            st.write("**Root Package Constraint:**")
+            for clause_info in root_clauses:
+                st.markdown(
+                    f"Term {clause_info['index']}: {clause_info['original_formula']}"
+                )
+                st.markdown(
+                    f"<span style='color: {clause_info['color']}; font-weight: bold;'>{clause_info['status']}</span>",
+                    unsafe_allow_html=True)
+        st.write("---")
+
+    # Display version constraints
+    if version_clauses:
+        with tab2:
+            st.write(
+                "**Version Uniqueness Constraints (at most one version per package):**"
+            )
+            for clause_info in version_clauses:
+                st.markdown(
+                    f"Term {clause_info['index']}: {clause_info['original_formula']}"
+                )
+                st.markdown(
+                    f"<span style='color: {clause_info['color']}; font-weight: bold;'>{clause_info['status']}</span>",
+                    unsafe_allow_html=True)
+            st.write("---")
+
+    # Display dependency constraints
+    if dependency_clauses:
+        with tab3:
+            st.write(
+                "**Dependency Implications (if package selected, dependencies must be satisfied):**"
+            )
+            for clause_info in dependency_clauses:
+                st.markdown(
+                    f"Term {clause_info['index']}: {clause_info['original_formula']}"
+                )
+                st.markdown(
+                    f"<span style='color: {clause_info['color']}; font-weight: bold;'>{clause_info['status']}</span>",
+                    unsafe_allow_html=True)
+            st.write("---")
+
+    
 
 
 def main():
@@ -225,17 +230,6 @@ def main():
     with st.sidebar:
         st.header("Game Controls")
 
-        # Mode selection
-        mode = st.radio(
-            "Select Game Mode:", ["Wild Mode", "Boolean Mode"],
-            help=
-            "Wild Mode: Solve without assistance. Boolean Mode: See boolean clause evaluation."
-        )
-        st.session_state.mode = 'wild' if mode == "Wild Mode" else 'boolean'
-
-        if st.session_state.mode == 'boolean':
-            st.info("Boolean analysis appears at the bottom of the page.",
-                        icon="ℹ️")
 
         # Scenario selection
         scenarios = generate_sample_graphs()
@@ -262,6 +256,13 @@ def main():
             st.rerun()
 
         st.selectbox("Root package to install", (f"{st.session_state.game.root_package}",), disabled=True)
+
+        st.write("Want hints as boolean clauses? Click the button below:")
+        if st.button("Show Boolean Hints"):
+            if st.session_state.game is not None:
+                display_boolean_clauses(st.session_state.game)
+            else:
+                st.error("Game not initialized. Please select a scenario first.")
 
         # Display game rules
         st.header("Game Rules")
@@ -339,9 +340,6 @@ def main():
         selected_list = sorted(list(game.selected_packages))
         st.write(", ".join(selected_list))
 
-    # Display Boolean Formula Analysis at the bottom in Boolean mode
-    if st.session_state.mode == 'boolean':
-        display_boolean_clauses(game)
 
 
 if __name__ == "__main__":
