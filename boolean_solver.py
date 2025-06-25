@@ -238,7 +238,7 @@ class BooleanSolver:
         if not hasattr(self, 'original_formulas'):
             self.generate_clauses()  # Generate if not already done
         return self.original_formulas
-    
+
     def all_solutions(self, max_solutions: int = 20) -> List[Set[str]]:
         """Enumerate all valid solutions (sets of packages) that satisfy all constraints. Returns up to max_solutions solutions."""
         clauses = self.generate_clauses()
