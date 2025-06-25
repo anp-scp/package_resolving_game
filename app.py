@@ -223,11 +223,11 @@ def show_version_conflict_dialog():
 def show_solution_dialog(game):
     """Display all valid solutions (sets of packages) in a dialog box"""
     boolean_solver = BooleanSolver(game.dependency_graph, game.root_package)
-    all_solutions = boolean_solver.all_solutions(max_solutions=20)
+    all_solutions = boolean_solver.all_solutions(max_solutions=5)
     if not all_solutions:
-        st.error("No valid solution exists for this scenario.")
+        st.error("The constraints are unsatisfiable. No valid solution exists for this scenario.")
         return
-    st.subheader("All Valid Solutions")
+    st.subheader("Valid Solutions")
     st.write(f"Showing {len(all_solutions)} solution(s):")
     for idx, solution in enumerate(all_solutions, 1):
         formatted = []
@@ -235,6 +235,7 @@ def show_solution_dialog(game):
             name, version = game.parse_package_node(pkg)
             formatted.append(f"{name} v{version}")
         st.markdown(f"**Solution {idx}:** " + ", ".join(formatted))
+    st.info("Here, we show 5 possibles solutions at max. Feel free to find more solutions.", icon="ℹ️")
 
 def main():
     st.title("Package Dependency Resolution Game")

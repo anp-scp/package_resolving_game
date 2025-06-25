@@ -268,4 +268,26 @@ class BooleanSolver:
                 selected.remove(pkg)
 
         backtrack(0, set())
+
+        # Minimize each solution by removing unnecessary packages
+        minimized_solutions = []
+        for sol in solutions:
+            minimized = set(sol)
+            for pkg in list(minimized):
+                test_sol = minimized - {pkg}
+                all_sat, _ = self.evaluate_all_clauses(test_sol)
+                if all_sat:
+                    minimized.remove(pkg)
+            minimized_solutions.append(frozenset(minimized))
+
+        # Deduplicate solutions
+        unique_solutions = []
+        seen = set()
+        for sol in minimized_solutions:
+            if sol not in seen:
+                seen.add(sol)
+                unique_solutions.append(set(sol))
+
+        solutions = unique_solutions
+
         return solutions
