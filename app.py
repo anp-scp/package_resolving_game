@@ -398,7 +398,7 @@ def main():
         </style>
         <div id='footer-authors' style='text-align: center; color: #666; font-size: 14px; padding: 1px 0 1px 0;'>
             Brought to life by <a href='https://github.com/anp-scp' target='_blank'>Anupam</a> and <a href='https://github.com/AyushShrivstava' target='_blank'>Ayush</a>.<br>
-            Built with Streamlit, Replit, Cursor and sprinkled with a dash of creativity!<br>
+            Built with <a href='https://replit.com/' target='_blank'>Replit</a>, <a href='https://www.cursor.com/' target='_blank'>Cursor</a> and sprinkled with a dash of creativity!<br>
         </div>
         """,
         unsafe_allow_html=True
