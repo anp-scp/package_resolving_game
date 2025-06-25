@@ -240,6 +240,18 @@ def main():
     st.title("Package Dependency Resolution Game")
     # st.write("Put on the robe of a package manager and solve dependencies!")
     st.markdown(
+        """
+        <style>
+        [data-testid="collapsedControl"] {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+    st.markdown(
         """Whenever we install a package from a package manager like `pip`, `apt`, `conda`, etc., the package manager has to
         ensure that all direct and indirect dependencies of the package are satisfied without any conflicts. Such dependencies
         can be represented as a directed graph, where nodes are packages and edges represent dependencies.
@@ -260,8 +272,6 @@ def main():
     # Sidebar for game controls
     with st.sidebar:
         st.header("Game Controls")
-
-
         # Scenario selection
         scenarios = generate_sample_graphs()
         scenario_names = [
@@ -298,6 +308,53 @@ def main():
         5. **Win condition**: All constraints satisfied to make root package installable
         6. **Boolean Hints**: Use boolean clauses to guide your selection whenever you are stuck.
         """)
+
+        # Authors notches at the bottom of the sidebar (horizontal)
+        st.markdown('<h3 style="margin-bottom:0;">Authors</h3>', unsafe_allow_html=True)
+        st.markdown(
+            """
+            <style>
+            .sidebar-authors {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                justify-content: center;
+                gap: 0.7em;
+                margin-top: 0;
+                margin-bottom: 0.5em;
+            }
+            .sidebar-author-notch {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-decoration: none;
+            }
+            .sidebar-author-notch img {
+                border-radius: 50%;
+                width: 76px;
+                height: 76px;
+                border: 4px solid #fff;
+                box-shadow: 0 2px 12px rgba(0,0,0,0.13);
+                background: #fff;
+                margin-bottom: -4px;
+                transition: transform 0.15s;
+            }
+            .sidebar-author-notch img:hover {
+                transform: scale(1.12);
+                box-shadow: 0 4px 24px rgba(0,0,0,0.20);
+            }
+            </style>
+            <div class="sidebar-authors">
+                <a class="sidebar-author-notch" href="https://github.com/anp-scp" target="_blank" title="Anupam Sharma (Creator)">
+                    <img src="https://avatars.githubusercontent.com/anp-scp">
+                </a>
+                <a class="sidebar-author-notch" href="https://github.com/AyushShrivstava" target="_blank" title="Ayush Shrivastava (Contributor)">
+                    <img src="https://avatars.githubusercontent.com/AyushShrivstava">
+                </a>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     game = st.session_state.game    
 
@@ -380,8 +437,6 @@ def main():
         )
     else:
         st.info("Start by selecting some packages to begin.")
-
-
 
 if __name__ == "__main__":
     main()
