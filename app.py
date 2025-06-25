@@ -45,7 +45,7 @@ def create_matplotlib_graph(game):
     pos = game.get_hierarchical_layout()
     
     # Create figure and axis
-    fig, ax = plt.subplots(1, 1, figsize=(8, 4))
+    fig, ax = plt.subplots(1, 1, figsize=(8, 6))
     # ax.set_aspect('equal')
     
     # Prepare node colors and edge colors for different border colors
@@ -63,29 +63,39 @@ def create_matplotlib_graph(game):
         
         # Determine edge color - sky blue for root package, black for others
         if node == game.root_package:
-            edge_colors.append('#87CEEB')  # Sky blue for root package
+            edge_colors.append('red')
         else:
             if package_color_map.get(node[:node.find('==')]) is None:
                 package_color_map[node[:node.find('==')]] = random_colors[clr_index]
                 clr_index += 1
-            edge_colors.append(package_color_map[node[:node.find('==')]])
-            # edge_colors.append('#888888')    # Black for other packages
+            edge_colors.append('black')
+    
+    # Prepare edge colors: green if both nodes are selected, else black
+    edge_colors_draw = []
+    for u, v in G.edges():
+        if u in game.selected_packages and v in game.selected_packages:
+            edge_colors_draw.append('#28a745')  # Green
+        else:
+            edge_colors_draw.append('black')
     
     # Draw edges first (so they appear behind nodes)
     nx.draw_networkx_edges(G, pos, ax=ax, 
-                          edge_color='#888888', 
+                          edgelist=list(G.edges()),
+                          edge_color=edge_colors_draw,  # type: ignore
                           arrows=True, 
-                          arrowsize=20, 
+                          arrowsize=25, 
                           arrowstyle='->', 
-                          width=2,
-                          connectionstyle="arc3,rad=0.1")
+                          width=3,
+                          connectionstyle="arc3,rad=0.4",
+                          min_source_margin=30,
+                          min_target_margin=30)
     
     # Draw nodes using nx.draw_networkx_nodes
     nx.draw_networkx_nodes(G, pos, ax=ax,
                           node_color=node_colors,
                           edgecolors=edge_colors,
                           linewidths=2,
-                          node_size=800,
+                          node_size=3800,
                           nodelist=list(G.nodes()))
     
     # Draw labels
@@ -95,12 +105,13 @@ def create_matplotlib_graph(game):
         labels[node] = f"{package_name}\nv{version}"
     
     nx.draw_networkx_labels(G, pos, labels, ax=ax, 
-                           font_size=8, 
+                           font_size=13, 
                            font_color='black',
                            font_weight='bold')
     
     # Set title and remove axes
-    ax.set_title('Package Dependency Graph', fontsize=16, fontweight='bold', pad=20)
+    root_name, root_version = game.parse_package_node(game.root_package)
+    ax.set_title(f'Solve dependencies for {root_name} v{root_version}', fontsize=16, fontweight='bold', pad=20)
     ax.axis('off')
     
     # Adjust layout to prevent clipping
@@ -204,27 +215,47 @@ def display_boolean_clauses(game):
                     unsafe_allow_html=True)
             st.write("---")
 
-    
+@st.dialog("Version Conflict")
+def show_version_conflict_dialog():
+    st.warning("Cannot select multiple versions of the same package. Deselect the previous version.", icon="⚠️")
 
+@st.dialog("Solution")
+def show_solution_dialog(game):
+    """Display all valid solutions (sets of packages) in a dialog box"""
+    boolean_solver = BooleanSolver(game.dependency_graph, game.root_package)
+    all_solutions = boolean_solver.all_solutions(max_solutions=20)
+    if not all_solutions:
+        st.error("No valid solution exists for this scenario.")
+        return
+    st.subheader("All Valid Solutions")
+    st.write(f"Showing {len(all_solutions)} solution(s):")
+    for idx, solution in enumerate(all_solutions, 1):
+        formatted = []
+        for pkg in sorted(solution):
+            name, version = game.parse_package_node(pkg)
+            formatted.append(f"{name} v{version}")
+        st.markdown(f"**Solution {idx}:** " + ", ".join(formatted))
 
 def main():
-    st.title("📦 Package Dependency Resolution Game")
-    st.write("Solve package dependencies like a package manager!")
+    st.title("Package Dependency Resolution Game")
+    # st.write("Put on the robe of a package manager and solve dependencies!")
     st.markdown(
         """Whenever we install a package from a package manager like `pip`, `apt`, `conda`, etc., the package manager has to
         ensure that all direct and indirect dependencies of the package are satisfied without any conflicts. Such dependencies
         can be represented as a directed graph, where nodes are packages and edges represent dependencies.
-        """
+        """ 
     )
     st.write(
-        """In this game, you will play the role of a package manager and resolve package dependencies by selecting packages to install. The goal is
-        to select packages such that all dependencies for the root package are satisfied without any conflicts."""
+        """You will play the role of a package manager and resolve package dependencies by selecting packages to install. The goal is
+        to select packages such that all dependencies for the root package are satisfied without any conflicts. 
+        The game presents a dependency graph for the root package on the left. The right side shows the packages that are available to install. You can select packages by clicking on them. The game will automatically update the dependency graph to reflect the selected packages."""
     )
     st.info(
         """Before starting, we recommend that you go through this article which explains what happens behing the scenes when you install a package using a package manager:
         [Boolean Propositional Logic for software installations?](https://anp-scp.github.io/blog/2025/06/12/boolean-propositional-logic-for-software-installations/)""",
         icon="⚠️"
     )
+    # st.write("The game presents a dependency graph for the root package on the left. The right side shows the packages that are available to install. You can select packages by clicking on them. The game will automatically update the dependency graph to reflect the selected packages.")
 
     # Sidebar for game controls
     with st.sidebar:
@@ -255,15 +286,6 @@ def main():
                 scenario['graph'], scenario['root'])
             st.rerun()
 
-        st.selectbox("Root package to install", (f"{st.session_state.game.root_package}",), disabled=True)
-
-        st.write("Want hints as boolean clauses? Click the button below:")
-        if st.button("Show Boolean Hints"):
-            if st.session_state.game is not None:
-                display_boolean_clauses(st.session_state.game)
-            else:
-                st.error("Game not initialized. Please select a scenario first.")
-
         # Display game rules
         st.header("Game Rules")
         st.write("""
@@ -274,9 +296,10 @@ def main():
            - All selected packages must form a valid dependency chain
         4. **How to play**: Click on nodes in the graph to select/deselect them for installation
         5. **Win condition**: All constraints satisfied to make root package installable
+        6. **Boolean Hints**: Use boolean clauses to guide your selection whenever you are stuck.
         """)
 
-    game = st.session_state.game
+    game = st.session_state.game    
 
     if game is None:
         st.error("Failed to initialize game. Please try refreshing the page.")
@@ -309,12 +332,36 @@ def main():
                         game.deselect_package(package)
                         st.rerun()
                     else:
-                        if(game.select_package(package) == 1):
+                        result = game.select_package(package)
+                        if result == 1:
                             st.rerun()
-                        elif(game.select_package(package) == 0):
-                            st.warning("Cannot select multiple versions of the same package. Deselect the previous version.",icon="⚠️")
+                        elif result == 0:
+                            show_version_conflict_dialog()
                         else:
-                            st.warning("Failed to select package. Please try again.", icon="❌")                       
+                            st.warning("Failed to select package. Please try again.", icon="❌")
+        # Show selected packages below selection buttons
+        st.subheader("Selected Packages")
+        if game.selected_packages:
+            selected_list = sorted(list(game.selected_packages))
+            st.write(", ".join(selected_list))
+        else:
+            st.write("None")
+        # Place the hint button below selected packages
+        st.subheader("Boolean Hints")
+        st.write("Want hints as boolean clauses?")
+        if st.button("Show Boolean Hints", key="show_boolean_hints_col2"):
+            if st.session_state.game is not None:
+                display_boolean_clauses(st.session_state.game)
+            else:
+                st.error("Game not initialized. Please select a scenario first.")
+
+        # Add Show Solution button
+        st.write("Or reveal the solution?")
+        if st.button("Show Solution", key="show_solution_col2"):
+            if st.session_state.game is not None:
+                show_solution_dialog(st.session_state.game)
+            else:
+                st.error("Game not initialized. Please select a scenario first.")
 
     # Game status
     st.subheader("Game Status")
@@ -333,12 +380,6 @@ def main():
         )
     else:
         st.info("Start by selecting some packages to begin.")
-
-    # Display selected packages
-    if game.selected_packages:
-        st.subheader("Selected Packages")
-        selected_list = sorted(list(game.selected_packages))
-        st.write(", ".join(selected_list))
 
 
 
