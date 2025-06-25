@@ -382,6 +382,27 @@ def main():
     else:
         st.info("Start by selecting some packages to begin.")
 
+    # Footer with authors
+    st.markdown("---")
+    st.markdown(
+        """
+        <style>
+        #footer-authors a, 
+        #footer-authors a:visited, 
+        #footer-authors a:active, 
+        #footer-authors a:hover {
+            color: inherit !important;
+            text-decoration: underline;
+            font-weight: bold;
+        }
+        </style>
+        <div id='footer-authors' style='text-align: center; color: #666; font-size: 14px; padding: 1px 0 1px 0;'>
+            Brought to life by <a href='https://github.com/anp-scp' target='_blank'>Anupam</a> and <a href='https://github.com/AyushShrivstava' target='_blank'>Ayush</a>.<br>
+            Built with Streamlit, Replit, Cursor and sprinkled with a dash of creativity!<br>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 
 if __name__ == "__main__":
