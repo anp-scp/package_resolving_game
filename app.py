@@ -110,7 +110,8 @@ def create_matplotlib_graph(game):
                            font_weight='bold')
     
     # Set title and remove axes
-    ax.set_title(f'Solve dependencies for {game.root_package}', fontsize=16, fontweight='bold', pad=20)
+    root_name, root_version = game.parse_package_node(game.root_package)
+    ax.set_title(f'Solve dependencies for {root_name} v{root_version}', fontsize=16, fontweight='bold', pad=20)
     ax.axis('off')
     
     # Adjust layout to prevent clipping
@@ -217,6 +218,23 @@ def display_boolean_clauses(game):
 @st.dialog("Version Conflict")
 def show_version_conflict_dialog():
     st.warning("Cannot select multiple versions of the same package. Deselect the previous version.", icon="⚠️")
+
+@st.dialog("Solution")
+def show_solution_dialog(game):
+    """Display all valid solutions (sets of packages) in a dialog box"""
+    boolean_solver = BooleanSolver(game.dependency_graph, game.root_package)
+    all_solutions = boolean_solver.all_solutions(max_solutions=20)
+    if not all_solutions:
+        st.error("No valid solution exists for this scenario.")
+        return
+    st.subheader("All Valid Solutions")
+    st.write(f"Showing {len(all_solutions)} solution(s):")
+    for idx, solution in enumerate(all_solutions, 1):
+        formatted = []
+        for pkg in sorted(solution):
+            name, version = game.parse_package_node(pkg)
+            formatted.append(f"{name} v{version}")
+        st.markdown(f"**Solution {idx}:** " + ", ".join(formatted))
 
 def main():
     st.title("Package Dependency Resolution Game")
@@ -330,10 +348,18 @@ def main():
             st.write("None")
         # Place the hint button below selected packages
         st.subheader("Boolean Hints")
-        st.write("Want hints as boolean clauses? Click the button below:")
+        st.write("Want hints as boolean clauses?")
         if st.button("Show Boolean Hints", key="show_boolean_hints_col2"):
             if st.session_state.game is not None:
                 display_boolean_clauses(st.session_state.game)
+            else:
+                st.error("Game not initialized. Please select a scenario first.")
+
+        # Add Show Solution button
+        st.write("Or reveal the solution?")
+        if st.button("Show Solution", key="show_solution_col2"):
+            if st.session_state.game is not None:
+                show_solution_dialog(st.session_state.game)
             else:
                 st.error("Game not initialized. Please select a scenario first.")
 

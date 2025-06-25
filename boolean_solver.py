@@ -238,3 +238,34 @@ class BooleanSolver:
         if not hasattr(self, 'original_formulas'):
             self.generate_clauses()  # Generate if not already done
         return self.original_formulas
+    
+    def all_solutions(self, max_solutions: int = 20) -> List[Set[str]]:
+        """Enumerate all valid solutions (sets of packages) that satisfy all constraints. Returns up to max_solutions solutions."""
+        clauses = self.generate_clauses()
+        packages = list(self.packages)
+        solutions = []
+        n = len(packages)
+
+        def backtrack(idx: int, selected: Set[str]):
+            if len(solutions) >= max_solutions:
+                return
+            if idx == n:
+                all_sat, _ = self.evaluate_all_clauses(selected)
+                if all_sat:
+                    solutions.append(set(selected))
+                return
+            pkg = packages[idx]
+            # Try not selecting pkg
+            backtrack(idx + 1, selected)
+            # Try selecting pkg if no other version of this package is already selected
+            pkg_name = self._get_package_name(pkg)
+            for sel in selected:
+                if self._get_package_name(sel) == pkg_name:
+                    break
+            else:
+                selected.add(pkg)
+                backtrack(idx + 1, selected)
+                selected.remove(pkg)
+
+        backtrack(0, set())
+        return solutions
