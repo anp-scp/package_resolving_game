@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Package Dependency Resolution Game</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <h1>📦 Package Dependency Resolution Game</h1>
+            <p class="subtitle">Put on the robe of a package manager and solve dependencies!</p>
+        </header>
+
+        <!-- Info Section -->
+        <div class="info-section">
+            <div class="description">
+                <p>Whenever we install a package from a package manager like <code>pip</code>, <code>apt</code>, <code>conda</code>, etc., the package manager has to ensure that all direct and indirect dependencies of the package are satisfied without any conflicts. Such dependencies can be represented as a directed graph, where nodes are packages and edges represent dependencies.</p>
+                
+                <p>You will play the role of a package manager and resolve package dependencies by selecting packages to install. The goal is to select packages such that all dependencies for the root package are satisfied without any conflicts. The game presents a dependency graph for the root package on the left. The right side shows the packages that are available to install. You can select packages by clicking on them.</p>
+                
+                <div class="info-box">
+                    <strong>⚠️ Before starting:</strong> We recommend that you go through this article which explains what happens behind the scenes when you install a package using a package manager: 
+                    <a href="https://anp-scp.github.io/blog/2025/06/12/boolean-propositional-logic-for-software-installations/" target="_blank">Boolean Propositional Logic for software installations?</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-container">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <h3>Game Controls</h3>
+                    
+                    <div class="control-group">
+                        <label for="scenario-select">Choose a scenario:</label>
+                        <select id="scenario-select">
+                            <!-- Options will be populated by JavaScript -->
+                        </select>
+                    </div>
+                    
+                    <button id="reset-btn" class="btn btn-secondary">Reset Game</button>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>Game Rules</h3>
+                    <ol class="rules-list">
+                        <li><strong>Goal:</strong> Select packages to satisfy all dependencies (direct/indirect) for the root package</li>
+                        <li>If a package depends on multiple versions of the same package, selecting any one version is enough</li>
+                        <li><strong>Constraints:</strong>
+                            <ul>
+                                <li>No two versions of the same package can be selected</li>
+                                <li>All selected packages must form a valid dependency chain</li>
+                            </ul>
+                        </li>
+                        <li><strong>How to play:</strong> Click on nodes in the graph to select/deselect them for installation</li>
+                        <li><strong>Win condition:</strong> All constraints satisfied to make root package installable</li>
+                        <li><strong>Boolean Hints:</strong> Use boolean clauses to guide your selection whenever you are stuck</li>
+                    </ol>
+                </div>
+
+                <div class="sidebar-section" style="display: none;">
+                    <h3>Selected Packages</h3>
+                    <div id="selected-packages" class="selected-packages">
+                        <em>None</em>
+                    </div>
+                </div>
+
+                <!-- <div class="sidebar-section">
+                    <h3>Actions</h3>
+                    <button id="show-hints-btn" class="btn btn-primary">Show Boolean Hints</button>
+                    <button id="show-solution-btn" class="btn btn-info">Show Solution</button>
+                </div> -->
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <div class="game-area">
+                    <!-- Graph Section -->
+                    <div class="graph-section">
+                        <h2>Dependency Graph</h2>
+                        <div id="graph-container">
+                            <svg id="dependency-graph"></svg>
+                        </div>
+                    </div>
+
+                    <!-- Package Selection Section -->
+                    <div class="package-section">
+                        <h2>Package Selection</h2>
+                        <p>Select packages by clicking the buttons below:</p>
+                        <div id="package-buttons" class="package-buttons" style="margin-bottom: 2rem;">
+                            <!-- Package buttons will be populated by JavaScript -->
+                        </div>
+                        
+                        <!-- Game Status -->
+                        <div class="status-section sidebar-section">
+                            <h2>Game Status</h2>
+                            <div id="game-status" class="status-message">
+                                Start by selecting some packages to begin.
+                            </div>
+                        </div>
+                        
+                        <div class="sidebar-section">
+                            <h3>Hints</h3>
+                            <button id="show-hints-btn" class="btn btn-primary">Show Boolean Hints</button>
+                            <button id="show-solution-btn" class="btn btn-info">Show Solution</button>
+                        </div>
+                        
+                    </div>
+                
+                </div>
+        
+            </main>
+        </div>
+
+        <!-- Modals -->
+        <div id="hints-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Boolean Hints</h2>
+                <div id="hints-content">
+                    <!-- Hints will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <div id="solution-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Solutions</h2>
+                <div id="solution-content">
+                    <!-- Solutions will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <div id="conflict-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Version Conflict</h2>
+                <p>⚠️ Cannot select multiple versions of the same package. Deselect the previous version.</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>
+                Brought to life by 
+                <a href="https://github.com/anp-scp" target="_blank">Anupam</a> and 
+                <a href="https://github.com/AyushShrivstava" target="_blank">Ayush</a>.<br>
+                Built with <a href="https://github.com/features/copilot" target="_blank">Copilot</a> and sprinkled with a dash of creativity!
+            </p>
+        </footer>
+    </div>
+
+    <script src="game-logic.js"></script>
+    <script src="graph-generator.js"></script>
+    <script src="boolean-solver.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
