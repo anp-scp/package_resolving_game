@@ -5,7 +5,8 @@ A web-based interactive game where you play the role of a package manager and so
 1. **Web Version (Fast)**: [View on Web](https://anp-scp.github.io/package_resolving_game/)
 2. **Streamlit Version (Sometimes slow)**: [View on Streamlit](https://package-puzzle.streamlit.app/)
 
-
+NOTE: The source code for the web version is in the `docs` dir. The name is kept as `docs` such that GitHub pages can fetch
+static files from the directory. GitHub pages only `docs` name for static files.
 
 ## 🎮 How to Play
 
