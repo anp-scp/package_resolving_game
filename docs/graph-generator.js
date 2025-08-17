@@ -110,6 +110,46 @@ class GraphGenerator {
             root: 'torch==2.3.1'
         });
 
+        // Scenario 5: Complex Interdependent Packages (Difficult)
+        const G5 = {
+            nodes: [
+                "app==1.0",
+                "libA==1.0", "libA==2.0",
+                "libB==1.0", "libB==2.0",
+                "libC==1.0", "libC==2.0",
+                "libD==1.0", "libD==2.0",
+                "libE==1.0", "libE==2.0"
+            ],
+            edges: [
+                // app depends on both versions of libA and libB (user must pick compatible versions)
+                ["app==1.0", "libA==1.0"],
+                ["app==1.0", "libA==2.0"],
+                ["app==1.0", "libB==1.0"],
+                ["app==1.0", "libB==2.0"],
+                // libA v1.0 and v2.0 depend on different versions of libC
+                ["libA==1.0", "libC==1.0"],
+                ["libA==2.0", "libC==2.0"],
+                // libB v1.0 and v2.0 depend on different versions of libD
+                ["libB==1.0", "libD==1.0"],
+                ["libB==2.0", "libD==2.0"],
+                // libC v1.0 depends on libE v1.0, v2.0 on libE v2.0
+                ["libC==1.0", "libE==1.0"],
+                ["libC==2.0", "libE==2.0"],
+                // libD v1.0 depends on libE v2.0, v2.0 on libE v1.0 (cross dependency)
+                ["libD==1.0", "libE==2.0"],
+                ["libD==2.0", "libE==1.0"],
+                // Add a diamond/cycle: libE v1.0 depends on libA v2.0, libE v2.0 depends on libB v1.0
+                ["libE==1.0", "libA==2.0"],
+                ["libE==2.0", "libB==1.0"]
+            ]
+        };
+        scenarios.push({
+            name: 'Complex Interdependent Packages',
+            description: 'A difficult scenario with multiple versions, cross dependencies, and a diamond/cycle structure. Requires careful selection to avoid version conflicts.',
+            graph: G5,
+            root: 'app==1.0'
+        });
+
         return scenarios;
     }
 
